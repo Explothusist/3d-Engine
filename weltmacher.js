@@ -14,6 +14,10 @@ class Spherical_Vertex {
         this.theta += point.theta;
         this.phi += point.phi;
     }
+    within_bounds() {
+        this.theta = (this.theta+(Math.PI*2)) % (Math.PI*2);
+        this.phi = Math.min(Math.PI, Math.max(this.phi, 0));
+    }
     invert() {
         this.r *= -1;
         this.theta *= -1;
@@ -38,6 +42,17 @@ class Spherical_Vertex {
     debug_text(txt, x, y, ctx) {
         ctx.fillStyle = "rgb(0, 0, 0)";
         ctx.fillText(txt+"("+this.r+", "+this.theta+", "+this.phi+")", x, y);
+    }
+};
+
+class Phi_Shift_Spherical_Vertex extends Spherical_Vertex {
+
+    constructor(r, theta, phi) {
+        super(r, theta, phi);
+    }
+    within_bounds() {
+        this.theta = (this.theta+(Math.PI*2)) % (Math.PI*2);
+        this.phi = Math.min(Math.PI/2, Math.max(this.phi, -Math.PI/2));
     }
 };
 
@@ -112,7 +127,7 @@ class Camera {
 
     constructor(x, y, z, theta, phi) {
         this.point = new Vertex(x, y, z);
-        this.angle = new Spherical_Vertex(0, theta, phi);
+        this.angle = new Phi_Shift_Spherical_Vertex(0, theta, phi);
     }
 
     moveRelative(vector) {
@@ -127,6 +142,13 @@ class Camera {
         trans_point = trans_point.to_cartesean();
         this.point = trans_point;
     }
+    moveAbsolute(vector) {
+        this.point.translate(vector);
+    }
+    rotate(vector) {
+        this.angle.translate(vector);
+        this.angle.within_bounds();
+    }
 }
 
 class WeltContext {
@@ -135,8 +157,8 @@ class WeltContext {
     floor_surfaces = [];
     camera;
     light;
-    vanish = 5000;
-    los = 3000;
+    vanish = 10000;
+    los = 6000;
 
     constructor() {
         // this.camera = new Camera(0, -400, 0, 0, 0);

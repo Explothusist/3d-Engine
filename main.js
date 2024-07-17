@@ -258,7 +258,7 @@ document.addEventListener("keyup", function(event) {
 });
 
 let move_speed = 12;
-let rotate_speed = 0.017*5;
+let rotate_speed = 0.017*2;
 
 function handle_camera() {
     if (get_key_state("ArrowUp")) {
@@ -270,10 +270,10 @@ function handle_camera() {
         welt_ctx.camera.moveRelative(new Vertex(0, 0, move_speed));
     }
     if (get_key_state("ArrowLeft")) {
-        welt_ctx.camera.angle.theta += rotate_speed;
+        welt_ctx.camera.rotate(new Spherical_Vertex(0, rotate_speed, 0));
     }
     if (get_key_state("ArrowRight")) {
-        welt_ctx.camera.angle.theta -= rotate_speed;
+        welt_ctx.camera.rotate(new Spherical_Vertex(0, -rotate_speed, 0));
     }
     if (get_key_state("w")) {
         // welt_ctx.camera.point.y += 1;
@@ -292,10 +292,10 @@ function handle_camera() {
         welt_ctx.camera.moveRelative(new Vertex(move_speed, 0, 0));
     }
     if (get_key_state("PageUp") || get_key_state("'")) {
-        welt_ctx.camera.angle.phi += rotate_speed;
+        welt_ctx.camera.rotate(new Spherical_Vertex(0, 0, rotate_speed));
     }
     if (get_key_state("PageDown") || get_key_state("/")) {
-        welt_ctx.camera.angle.phi -= rotate_speed;
+        welt_ctx.camera.rotate(new Spherical_Vertex(0, 0, -rotate_speed));
     }
 };
 
