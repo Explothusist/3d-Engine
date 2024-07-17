@@ -52,7 +52,8 @@ class Phi_Shift_Spherical_Vertex extends Spherical_Vertex {
     }
     within_bounds() {
         this.theta = (this.theta+(Math.PI*2)) % (Math.PI*2);
-        this.phi = Math.min(Math.PI/2, Math.max(this.phi, -Math.PI/2));
+        // If it actually reaches pi/2, odd math occurs
+        this.phi = Math.min((Math.PI/2)*0.99, Math.max(this.phi, (-Math.PI/2)*0.99));
     }
 };
 
@@ -91,22 +92,101 @@ class Vertex {
         return new Vertex(this.x, this.y, this.z);
     }
 
-    add_perspective(vanish, los) {
+    add_perspective(/*los, */focus) {
         let x = this.x;
         let y = this.y;
         let z = this.z;
-        let multiplier = (vanish-this.y)/vanish;
-        let los_mult = (vanish-los)/vanish;
-        multiplier = Math.max(los_mult, Math.min(1, multiplier));
-        // multiplier *= multiplier;
-        this.x = x*multiplier;
-        this.y = z*multiplier;
+        // let multiplier = (vanish-this.y)/vanish;
+        // let los_mult = (vanish-los)/vanish;
+        // multiplier = Math.max(los_mult, Math.min(1, multiplier));
+        // // multiplier *= multiplier;
+        // this.x = x*multiplier;
+        // this.y = z*multiplier;
+        // this.z = y;
+        
+        y = Math.max(y, 0);
+        let point = new Vertex_2d(x, z);
+        point = point.to_polar();
+        this.angular_diameter = 2*Math.atan(point.r/(2*y));
+        point.r = this.angular_diameter*focus;
+        point = point.to_cartesean();
+        this.x = point.x;
+        this.y = point.y;
         this.z = y;
     }
 
     debug_text(txt, x, y, ctx) {
         ctx.fillStyle = "rgb(0, 0, 0)";
         ctx.fillText(txt+"("+this.x+", "+this.y+", "+this.z+")", x, y);
+    }
+};
+
+class Vertex_2d {
+    x;
+    y;
+
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    translate(point) {
+        this.x += point.x;
+        this.y += point.y;
+    }
+    invert() {
+        this.x *= -1;
+        this.y *= -1;
+    }
+    scale(point) {
+        this.x *= point.x;
+        this.y *= point.y;
+    }
+    to_polar() {
+        let r = Math.sqrt((this.x*this.x)+(this.y*this.y));
+        let theta = Math.atan2(this.y, this.x);
+        return new Polar_Vertex(r, theta);
+    }
+    copy() {
+        return new Vertex_2d(this.x, this.y);
+    }
+
+    debug_text(txt, x, y, ctx) {
+        ctx.fillStyle = "rgb(0, 0, 0)";
+        ctx.fillText(txt+"("+this.x+", "+this.y+")", x, y);
+    }
+};
+
+class Polar_Vertex {
+    r;
+    theta;
+
+    constructor(r, theta) {
+        this.r = r;
+        this.theta = theta;
+    }
+    translate(point) {
+        this.r += point.r;
+        this.theta += point.theta;
+    }
+    within_bounds() {
+        this.theta = (this.theta+(Math.PI*2)) % (Math.PI*2);
+    }
+    invert() {
+        this.r *= -1;
+        this.theta *= -1;
+    }
+    to_cartesean() {
+        let x = this.r*Math.cos(this.theta);
+        let y = this.r*Math.sin(this.theta);
+        return new Vertex_2d(x, y);
+    }
+    copy() {
+        return new Polar_Vertex(this.r, this.theta);
+    }
+
+    debug_text(txt, x, y, ctx) {
+        ctx.fillStyle = "rgb(0, 0, 0)";
+        ctx.fillText(txt+"("+this.r+", "+this.theta+")", x, y);
     }
 };
 
@@ -130,17 +210,47 @@ class Camera {
         this.angle = new Phi_Shift_Spherical_Vertex(0, theta, phi);
     }
 
+    moveFullRelative(vector) {
+        // Uses Phi
+
+        // let trans_point = this.point.to_spherical();
+        // let invert_angle = this.angle.copy();
+        // invert_angle.invert();
+        // trans_point.translate(invert_angle);
+        // trans_point = trans_point.to_cartesean();
+        // trans_point.translate(vector);
+        // trans_point = trans_point.to_spherical();
+        // trans_point.translate(this.angle);
+        // trans_point = trans_point.to_cartesean();
+        // this.point = trans_point;
+
+        let angled_vector = vector.copy();
+        angled_vector = angled_vector.to_spherical();
+        angled_vector.translate(this.angle);
+        angled_vector = angled_vector.to_cartesean();
+        this.point.translate(angled_vector);
+    }
     moveRelative(vector) {
-        let trans_point = this.point.to_spherical();
-        let invert_angle = this.angle.copy();
-        invert_angle.invert();
-        trans_point.translate(invert_angle);
-        trans_point = trans_point.to_cartesean();
-        trans_point.translate(vector);
-        trans_point = trans_point.to_spherical();
-        trans_point.translate(this.angle);
-        trans_point = trans_point.to_cartesean();
-        this.point = trans_point;
+        // Ignores Phi
+
+        // let trans_point = this.point.to_spherical();
+        // let invert_angle = new Spherical_Vertex(0, this.angle.theta, 0);
+        // console.log(this.angle, invert_angle);
+        // invert_angle.invert();
+        // trans_point.translate(invert_angle);
+        // trans_point = trans_point.to_cartesean();
+        // trans_point.translate(vector);
+        // trans_point = trans_point.to_spherical();
+        // trans_point.translate(this.angle);
+        // trans_point = trans_point.to_cartesean();
+        // console.log(this.point, trans_point);
+        // this.point = trans_point;
+        
+        let angled_vector = vector.copy();
+        angled_vector = angled_vector.to_spherical();
+        angled_vector.translate(new Spherical_Vertex(0, this.angle.theta, 0));
+        angled_vector = angled_vector.to_cartesean();
+        this.point.translate(angled_vector);
     }
     moveAbsolute(vector) {
         this.point.translate(vector);
@@ -157,8 +267,10 @@ class WeltContext {
     floor_surfaces = [];
     camera;
     light;
-    vanish = 10000;
-    los = 6000;
+    // vanish = 10000;
+    // los = 6000;
+    distinguishable_size = 0.0003; // 0.0003 rad = 1 arcminute = how small an object humans can make out
+    focus = 1000; // Distance at which objects are x pixels large, x being size in code
 
     constructor() {
         // this.camera = new Camera(0, -400, 0, 0, 0);
@@ -209,7 +321,7 @@ class WeltContext {
             // I was right! Now maybe it is correct
             vert = vert.to_cartesean();
             // vert.debug_text("cartesean: ", 50, 180+(i*150), ctx);
-            vert.add_perspective(this.vanish, this.los);
+            vert.add_perspective(/*this.distinguishable_size, */this.focus);
             // vert.debug_text("perspective: ", 50, 200+(i*150), ctx);
             vertex_positions.push(vert);
         }
@@ -242,8 +354,10 @@ class WeltContext {
             for (let vert_index of surface.vertices) {
                 average_dist += vertex_positions[vert_index].z;
                 // min_dist = Math.min(vertex_positions[vert_index].z, min_dist);
-                if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].z < this.los/* && vertex_positions[vert_index].x > -(width/2) && vertex_positions[vert_index].x < (width/2)
-                        && vertex_positions[vert_index].y > -(height/2) && vertex_positions[vert_index].y < (height/2)*/) {
+                // if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].z < this.los
+                if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].angular_diameter > this.distinguishable_size
+                    /* && vertex_positions[vert_index].x > -(width/2) && vertex_positions[vert_index].x < (width/2)
+                        // && vertex_positions[vert_index].y > -(height/2) && vertex_positions[vert_index].y < (height/2)*/) {
                     one_on_screen = true;
                 }
             }

@@ -111,7 +111,7 @@ function add_tree(x, y, z) {
 
 for (let i = 0; i < 5; i++) {
     for (let j = 0; j < 5; j++) {
-        add_tree(-200-(i*500)-(Math.random()*200), 200+(j*500)+(Math.random()*200), 0);
+        add_tree(-200-(i*500)-(Math.random()*500), 200+(j*500)+(Math.random()*500), 0);
     }
 }
 
