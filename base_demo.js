@@ -33,13 +33,13 @@ const welt_ctx = new WeltContext();
 // welt_ctx.add_surface([0, 1, 5, 4], "#0000A0"); // r
 // welt_ctx.add_surface([0, 3, 7, 4], "#A00000"); // f
 
-function add_grass(x, y, z) {
-    let far_right = welt_ctx.add_vertex(x+500, y+500, z);
-    let far_left = welt_ctx.add_vertex(x-500, y+500, z);
-    let back_right = welt_ctx.add_vertex(x+500, y-500, z);
-    let back_left = welt_ctx.add_vertex(x-500, y-500, z);
-    welt_ctx.add_floor([far_right, far_left, back_left, back_right], "#005000");
-};
+// function add_grass(x, y, z) {
+//     let far_right = welt_ctx.add_vertex(x+500, y+500, z);
+//     let far_left = welt_ctx.add_vertex(x-500, y+500, z);
+//     let back_right = welt_ctx.add_vertex(x+500, y-500, z);
+//     let back_left = welt_ctx.add_vertex(x-500, y-500, z);
+//     welt_ctx.add_floor([far_right, far_left, back_left, back_right], "#005000");
+// };
 
 // add_grass(0, 0, 0);
 // add_grass(1000, 0, 0);
@@ -56,11 +56,13 @@ function add_grass(x, y, z) {
 // add_grass(2000, 1000, 0);
 // add_grass(3000, 1000, 0);
 
-for (let i = -5000; i <= 5000; i += 1000) {
-    for (let j = -3000; j <= 3000; j += 1000) {
-        add_grass(i, j, 0);
-    }
-}
+// for (let i = -5000; i <= 5000; i += 1000) {
+//     for (let j = -3000; j <= 3000; j += 1000) {
+//         add_grass(i, j, 0);
+//     }
+// }
+
+AddTiledRect(welt_ctx, new Vertex(-5000, -3000, 0), 10000, 6000, 10, 6, { as_floor: true, color: "#005000" })
 
 function add_checker_board(x, y, z) {
     let size_of_square = 100;
@@ -174,6 +176,14 @@ function add_fort_front(x, y, z) {
 };
 
 add_fort_front(-500, -2000, 0);
+
+AddPrism(welt_ctx, new Vertex(1000, 2000, 0), 200, -200, [], { num_sides: 4, all_sides: true, color: "#505000" });
+AddPrism(welt_ctx, new Vertex(2000, 2000, 0), 200, -300, [], { num_sides: 16, all_sides: true, color: "#505000" });
+AddPrism(welt_ctx, new Vertex(2000, 1000, 0), 300, -200, [], { num_sides: 6, all_sides: true, color: "#505000" });
+
+AddCube(welt_ctx, new Vertex(3000, 1000, 0), (Math.random()*200)+100, (Math.random()*200)+100, -((Math.random()*200)+100), [], { num_sides: 6, all_sides: true, color: "#505000" });
+AddCube(welt_ctx, new Vertex(3000, 2000, 0), (Math.random()*200)+100, (Math.random()*200)+100, -((Math.random()*200)+100), [], { num_sides: 6, all_sides: true, color: "#505000" });
+AddCube(welt_ctx, new Vertex(3000, 3000, 0), (Math.random()*200)+100, (Math.random()*200)+100, -((Math.random()*200)+100), [], { num_sides: 6, all_sides: true, color: "#505000" });
 
 let key_states = {};
 function set_key_state(key, state) {

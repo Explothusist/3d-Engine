@@ -190,6 +190,7 @@ class Polar_Vertex {
     }
 };
 
+
 class Surface {
     vertices = [];
     color;
@@ -351,18 +352,40 @@ class WeltContext {
             let average_dist = 0;
             // let min_dist = this.los;
             let one_on_screen = false;
+            let one_on_screen_x = false;
+            let offscreen_posx = false;
+            let offscreen_negx = false;
+            let offscreen_posy = false;
+            let offscreen_negy = false;
             for (let vert_index of surface.vertices) {
                 average_dist += vertex_positions[vert_index].z;
                 // min_dist = Math.min(vertex_positions[vert_index].z, min_dist);
-                // if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].z < this.los
-                if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].angular_diameter > this.distinguishable_size
-                    /* && vertex_positions[vert_index].x > -(width/2) && vertex_positions[vert_index].x < (width/2)
-                        // && vertex_positions[vert_index].y > -(height/2) && vertex_positions[vert_index].y < (height/2)*/) {
+                if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].angular_diameter > this.distinguishable_size) {
                     one_on_screen = true;
                 }
+                if (vertex_positions[vert_index].x > -(width/2) && vertex_positions[vert_index].x < (width/2)
+                    && vertex_positions[vert_index].y > -(height/2) && vertex_positions[vert_index].y < (height/2)) {
+                    one_on_screen_x = true;
+                }else {
+                    if (vertex_positions[vert_index].x < -(width/2)) {
+                        offscreen_negx = true;
+                    }
+                    if (vertex_positions[vert_index].x > (width/2)) {
+                        offscreen_posx = true;
+                    }
+                    if (vertex_positions[vert_index].y < -(height/2)) {
+                        offscreen_negy = true;
+                    }
+                    if (vertex_positions[vert_index].y > (height/2)) {
+                        offscreen_posy = true;
+                    }
+                }
+            }
+            if ((offscreen_negx+offscreen_posx) === 2 || (offscreen_negy+offscreen_posy) === 2) {
+                one_on_screen_x = true;
             }
             average_dist /= surface.vertices.length;
-            if (one_on_screen) {
+            if (one_on_screen && one_on_screen_x) {
                 surfaces_sorted.push({index: i, dist: average_dist});
                 // surfaces_sorted.push({index: i, dist: min_dist});
             }
@@ -381,6 +404,159 @@ class WeltContext {
             ctx.closePath();
             ctx.stroke();
             ctx.fill();
+        }
+    }
+};
+
+
+function AddPrism(welt_ctx, point, radius, height, sides, options) {
+    // point is bottom, back, left
+    // sides is array of booleans in the form:
+    // [top, bottom, side1 (back side (x, z)), side2 (clockwise from side1), ...]
+    // options are num_sides (int), from_spherical (bool), as_floor (bool), color (color), all_sides (bool)
+    if (options.from_spherical) {
+        point = point.to_cartesean();
+    }
+    let num_sides = options.num_sides || 4;
+    let color = options.color || "#000000";
+    let center_to_corner = Math.sqrt(1+Math.pow((Math.tan(Math.PI/num_sides)), 2))*radius;
+    let corner_angle = (2*Math.PI)/num_sides;
+    let center_x = point.x+(radius);
+    let center_y = point.y+(radius);
+
+    if (options.all_sides) {
+        sides = [true, true];
+        for (let i = 0; i < num_sides; i++) {
+            sides.push(true);
+        }
+    }
+
+    let corners = [];
+    let top_corners = [];
+    for (let i = 0; i < num_sides; i++) {
+        let polar = new Polar_Vertex(center_to_corner, corner_angle*i);
+        polar = polar.to_cartesean();
+        corners.push(welt_ctx.add_vertex(center_x+polar.x, center_y+polar.y, point.z));
+        top_corners.push(welt_ctx.add_vertex(center_x+polar.x, center_y+polar.y, point.z+height));
+    }
+
+    if (sides[0]) {
+        if (!options.as_floor) {
+            welt_ctx.add_surface(top_corners, color);
+        }else {
+            welt_ctx.add_floor(top_corners, color);
+        }
+    }
+    if (sides[1]) {
+        if (!options.as_floor) {
+            welt_ctx.add_surface(corners, color);
+        }else {
+            welt_ctx.add_floor(corners, color);
+        }
+    }
+    for (let i = 0; i < num_sides; i++) {
+        if (sides[i+2]) {
+            if (!options.as_floor) {
+                welt_ctx.add_surface([corners[i], top_corners[i], top_corners[(i+1) % num_sides], corners[(i+1) % num_sides]], color);
+            }else {
+                welt_ctx.add_floor([corners[i], top_corners[i], top_corners[(i+1) % num_sides], corners[(i+1) % sides]], color);
+            }
+        }
+    }
+};
+
+function AddCube(welt_ctx, point, width, length, height, sides, options) {
+    // point is bottom, back, left
+    // sides is array of booleans in the form:
+    // [top, bottom, side1 (back side (x, z)), side2 (clockwise from side1), ...]
+    // options are from_spherical (bool), as_floor (bool), color (color), all_sides (bool)
+    if (options.from_spherical) {
+        point = point.to_cartesean();
+    }
+    let color = options.color || "#000000";
+
+    if (options.all_sides) {
+        sides = [true, true, true, true, true, true];
+    }
+
+    let bottom_back_left = welt_ctx.add_vertex(point.x, point.y, point.z);
+    let bottom_back_right = welt_ctx.add_vertex(point.x+width, point.y, point.z);
+    let bottom_front_left = welt_ctx.add_vertex(point.x, point.y+length, point.z);
+    let bottom_front_right = welt_ctx.add_vertex(point.x+width, point.y+length, point.z);
+    let top_back_left = welt_ctx.add_vertex(point.x, point.y, point.z+height);
+    let top_back_right = welt_ctx.add_vertex(point.x+width, point.y, point.z+height);
+    let top_front_left = welt_ctx.add_vertex(point.x, point.y+length, point.z+height);
+    let top_front_right = welt_ctx.add_vertex(point.x+width, point.y+length, point.z+height);
+
+    if (sides[0]) {
+        if (!options.as_floor) {
+            welt_ctx.add_surface([top_back_left, top_back_right, top_front_right, top_front_left], color);
+        }else {
+            welt_ctx.add_floor([top_back_left, top_back_right, top_front_right, top_front_left], color);
+        }
+    }
+    if (sides[1]) {
+        if (!options.as_floor) {
+            welt_ctx.add_surface([bottom_back_left, bottom_back_right, bottom_front_right, bottom_front_left], color);
+        }else {
+            welt_ctx.add_floor([bottom_back_left, bottom_back_right, bottom_front_right, bottom_front_left], color);
+        }
+    }
+    if (sides[2]) {
+        if (!options.as_floor) {
+            welt_ctx.add_surface([bottom_back_left, bottom_back_right, top_back_right, top_back_left], color);
+        }else {
+            welt_ctx.add_floor([bottom_back_left, bottom_back_right, top_back_right, top_back_left], color);
+        }
+    }
+    if (sides[3]) {
+        if (!options.as_floor) {
+            welt_ctx.add_surface([bottom_front_right, bottom_back_right, top_back_right, top_front_right], color);
+        }else {
+            welt_ctx.add_floor([bottom_front_right, bottom_back_right, top_back_right, top_front_right], color);
+        }
+    }
+    if (sides[4]) {
+        if (!options.as_floor) {
+            welt_ctx.add_surface([bottom_front_right, bottom_front_left, top_front_left, top_front_right], color);
+        }else {
+            welt_ctx.add_floor([bottom_front_right, bottom_front_left, top_front_left, top_front_right], color);
+        }
+    }
+    if (sides[5]) {
+        if (!options.as_floor) {
+            welt_ctx.add_surface([bottom_back_left, bottom_front_left, top_front_left, top_back_left], color);
+        }else {
+            welt_ctx.add_floor([bottom_back_left, bottom_front_left, top_front_left, top_back_left], color);
+        }
+    }
+};
+
+function AddTiledRect(welt_ctx, point, width, length, x_tiles, y_tiles, options) {
+    // point is back, left
+    // options are from_spherical (bool), as_floor (bool), color (color)
+    if (options.from_spherical) {
+        point = point.to_cartesean();
+    }
+    let color = options.color || "#000000";
+    let tile_width = width/x_tiles;
+    let tile_length = length/y_tiles;
+
+    let vertices = [];
+    for (let i = 0; i <= x_tiles; i++) {
+        vertices.push([]);
+        for (let j = 0; j <= y_tiles; j++) {
+            vertices[i].push(welt_ctx.add_vertex(point.x+(tile_width*i), point.y+(tile_length*j), point.z));
+        }
+    }
+
+    for (let i = 0; i < x_tiles; i++) {
+        for (let j = 0; j < y_tiles; j++) {
+            if (!options.as_floor) {
+                welt_ctx.add_surface([vertices[i][j], vertices[i+1][j], vertices[i+1][j+1], vertices[i][j+1]], color);
+            }else {
+                welt_ctx.add_floor([vertices[i][j], vertices[i+1][j], vertices[i+1][j+1], vertices[i][j+1]], color);
+            }
         }
     }
 };
