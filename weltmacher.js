@@ -191,6 +191,471 @@ class Polar_Vertex {
 };
 
 
+class Line_2d {
+    m;
+    b;
+
+    constructor(m, b) {
+        this.m = m;
+        this.b = b;
+    }
+    pointIsOnLine(point) {
+        if (point.y === (this.m*point.x)+this.b) {
+            return true;
+        }
+        return false;
+    }
+    pointIsAboveLine(point) {
+        if (point.y > (this.m*point.x)+this.b) {
+            return true;
+        }
+        return false;
+    }
+    pointIsBelowLine(point) {
+        if (point.y < (this.m*point.x)+this.b) {
+            return true;
+        }
+        return false;
+    }
+
+    static get_line(point1, point2) {
+        // 2d line connecting points in slope-intercept form (y = mx + b)
+        let m = (point2.y-point1.y)/(point2.x-point1.x);
+        let b = point1.y-(m*point1.x);
+        return new Line_2d(m, b);
+    }
+};
+
+// Can handle ramps
+function collide_cube_to_floor_rect(cube_points, rect_points) {
+    // cube_points is array of 8 vertices and rect_points is array of 4 vertices
+
+    // console.log(cube_points, rect_points);
+
+    rect_points.sort((a, b) => a.x-b.x || a.y-b.y || a.z-b.z);
+    let rect_origin = rect_points[0].copy();
+    rect_points.splice(0, 1);
+    let high_dist = {value: 0, index: 0};
+    for (let i = 0; i < rect_points.length; i++) {
+        let point = rect_points[i];
+        let dist = Math.sqrt(Math.pow(rect_origin.x-point.x, 2)+Math.pow(rect_origin.y-point.y, 2)+Math.pow(rect_origin.z-point.z, 2));
+        if (dist > high_dist.value) {
+            high_dist.value = dist;
+            high_dist.index = i;
+        }
+    }
+    let rect_dimensions = rect_points[high_dist.index].copy();
+    rect_points.splice(high_dist.index, 1);
+    let invert_origin = rect_origin.copy();
+    invert_origin.invert();
+    rect_dimensions.translate(invert_origin);
+
+    // console.log(rect_origin, rect_dimensions);
+
+    let z_counted = false;
+
+    // x-z test
+    let xz_test_result = false;
+    let x_min = new Vertex_2d(rect_origin.x, rect_origin.z);
+    // let x_max = new Vertex_2d(rect_origin.x+rect_dimensions.x, rect_origin.z+rect_dimensions.z);
+    let x_max = undefined;
+    for (let point of rect_points) {
+        if (point.y === rect_origin.y) {
+            x_max = new Vertex_2d(point.x, point.z);
+        }
+    }
+    if (x_max === undefined) {
+        console.log("!! collide_cube_to_floor_rect cannot handle the given rect_points !!");
+    }
+    let xz_line = Line_2d.get_line(x_min, x_max);
+
+    // console.log(xz_line);
+
+    let in_x_bounds = false;
+    let x_greater = false;
+    let x_lesser = false;
+    for (let point of cube_points) {
+        if (point.x >= x_min.x && point.x <= x_max.x) {
+            in_x_bounds = true;
+            break;
+        }else if (point.x > x_max.x) {
+            x_greater = true;
+            if (x_lesser) {
+                in_x_bounds = true;
+                break;
+            }
+        }else if (point.x < x_min.x) {
+            x_lesser = true;
+            if (x_greater) {
+                in_x_bounds = true;
+                break;
+            }
+        }
+    }
+    // console.log(in_x_bounds, x_greater, x_lesser);
+    if (in_x_bounds) {
+        if (xz_line.m !== 0) {
+            z_counted = true;
+            let above_line = false;
+            let below_line = false;
+            for (let point of cube_points) {
+                let point2d = new Vertex_2d(point.x, point.z);
+                if (xz_line.pointIsOnLine(point2d)) {
+                    xz_test_result = true;
+                    break;
+                }else if (xz_line.pointIsAboveLine(point2d)) {
+                    above_line = true;
+                    if (below_line) {
+                        xz_test_result = true;
+                        break;
+                    }
+                }else if (xz_line.pointIsBelowLine(point2d)) {
+                    below_line = true;
+                    if (above_line) {
+                        xz_test_result = true;
+                        break;
+                    }
+                }
+            }
+            // console.log(above_line, below_line);
+        }else {
+            xz_test_result = true;
+        }
+    }
+
+    // y-z test
+    let yz_test_result = false;
+    let y_min = new Vertex_2d(rect_origin.y, rect_origin.z);
+    // let y_max = new Vertex_2d(rect_origin.y+rect_dimensions.y, rect_origin.z+rect_dimensions.z);
+    let y_max = undefined;
+    for (let point of rect_points) {
+        if (point.x === rect_origin.x) {
+            y_max = new Vertex_2d(point.y, point.z);
+        }
+    }
+    if (y_max === undefined) {
+        console.log("!! collide_cube_to_floor_rect cannot handle the given rect_points !!");
+    }
+    let yz_line = Line_2d.get_line(y_min, y_max);
+
+    // console.log(yz_line);
+
+    let in_y_bounds = false;
+    let y_greater = false;
+    let y_lesser = false;
+    for (let point of cube_points) {
+        if (point.y >= y_min.x && point.y <= y_max.x) {
+            in_y_bounds = true;
+            break;
+        }else if (point.y > y_max.x) {
+            y_greater = true;
+            if (y_lesser) {
+                in_y_bounds = true;
+                break;
+            }
+        }else if (point.y < x_min.x) {
+            y_lesser = true;
+            if (y_greater) {
+                in_y_bounds = true;
+                break;
+            }
+        }
+    }
+    // console.log(in_y_bounds, y_greater, y_lesser);
+    if (in_y_bounds) {
+        if (yz_line.m !== 0 || !z_counted) {
+            let above_line = false;
+            let below_line = false;
+            for (let point of cube_points) {
+                let point2d = new Vertex_2d(point.y, point.z);
+                if (yz_line.pointIsOnLine(point2d)) {
+                    yz_test_result = true;
+                    break;
+                }else if (yz_line.pointIsAboveLine(point2d)) {
+                    above_line = true;
+                    if (below_line) {
+                        yz_test_result = true;
+                        break;
+                    }
+                }else if (yz_line.pointIsBelowLine(point2d)) {
+                    below_line = true;
+                    if (above_line) {
+                        yz_test_result = true;
+                        break;
+                    }
+                }
+            }
+            // console.log(above_line, below_line);
+        }else {
+            yz_test_result = true;
+        }
+    }
+
+    if (yz_test_result && xz_test_result) {
+        return true;
+    }
+    return false;
+};
+// Must be vertical or horizontal
+function collide_cube_to_vertical_wall_rect(cube_points, rect_points) {
+    // cube_points is array of 8 vertices and rect_points is array of 4 vertices
+
+    // console.log(cube_points, rect_points);
+
+    rect_points.sort((a, b) => a.x-b.x || a.y-b.y || a.z-b.z);
+    let rect_origin = rect_points[0].copy();
+    rect_points.splice(0, 1);
+    let high_dist = {value: 0, index: 0};
+    for (let i = 0; i < rect_points.length; i++) {
+        let point = rect_points[i];
+        let dist = Math.sqrt(Math.pow(rect_origin.x-point.x, 2)+Math.pow(rect_origin.y-point.y, 2)+Math.pow(rect_origin.z-point.z, 2));
+        if (dist > high_dist.value) {
+            high_dist.value = dist;
+            high_dist.index = i;
+        }
+    }
+    let rect_dimensions = rect_points[high_dist.index].copy();
+    rect_points.splice(high_dist.index, 1);
+    let invert_origin = rect_origin.copy();
+    invert_origin.invert();
+    rect_dimensions.translate(invert_origin);
+
+    // console.log(rect_origin, rect_dimensions);
+
+    // x-z test
+    let xz_test_result = false;
+    if (rect_dimensions.x === 0 || rect_dimensions.z === 0) {
+        let x_min = new Vertex_2d(rect_origin.x, rect_origin.z);
+        // let x_max = new Vertex_2d(rect_origin.x+rect_dimensions.x, rect_origin.z+rect_dimensions.z);
+        let x_max = undefined;
+        for (let point of rect_points) {
+            if (point.y === rect_origin.y) {
+                x_max = new Vertex_2d(point.x, point.z);
+            }
+        }
+        if (x_max === undefined) {
+            console.log("!! collide_cube_to_vertical_wall_rect cannot handle the given rect_points !!");
+        }
+        let xz_line = Line_2d.get_line(x_min, x_max);
+        let flip_xz = false;
+        if (xz_line.m === Infinity) {
+            flip_xz = true;
+            x_min = new Vertex_2d(x_min.y, x_min.x);
+            x_max = new Vertex_2d(x_max.y, x_max.x);
+            xz_line = Line_2d.get_line(x_min, x_max);
+        }
+
+        // console.log(xz_line);
+
+        let in_x_bounds = false;
+        let x_greater = false;
+        let x_lesser = false;
+        for (let point of cube_points) {
+            if (point.x >= x_min.x && point.x <= x_max.x) {
+                in_x_bounds = true;
+                break;
+            }else if (point.x > x_max.x) {
+                x_greater = true;
+                if (x_lesser) {
+                    in_x_bounds = true;
+                    break;
+                }
+            }else if (point.x < x_min.x) {
+                x_lesser = true;
+                if (x_greater) {
+                    in_x_bounds = true;
+                    break;
+                }
+            }
+        }
+        // console.log(in_x_bounds, x_greater, x_lesser);
+        if (in_x_bounds) {
+            let above_line = false;
+            let below_line = false;
+            for (let point of cube_points) {
+                let point2d = new Vertex_2d(point.x, point.z);
+                if (flip_xz) {
+                    point2d = new Vertex_2d(point2d.y, point2d.x);
+                }
+                if (xz_line.pointIsOnLine(point2d)) {
+                    xz_test_result = true;
+                    break;
+                }else if (xz_line.pointIsAboveLine(point2d)) {
+                    above_line = true;
+                    if (below_line) {
+                        xz_test_result = true;
+                        break;
+                    }
+                }else if (xz_line.pointIsBelowLine(point2d)) {
+                    below_line = true;
+                    if (above_line) {
+                        xz_test_result = true;
+                        break;
+                    }
+                }
+            }
+            // console.log(above_line, below_line);
+        }
+    }
+
+    // y-z test
+    let yz_test_result = false;
+    if (rect_dimensions.y === 0 || rect_dimensions.z === 0) {
+        let y_min = new Vertex_2d(rect_origin.y, rect_origin.z);
+        // let y_max = new Vertex_2d(rect_origin.y+rect_dimensions.y, rect_origin.z+rect_dimensions.z);
+        let y_max = undefined;
+        for (let point of rect_points) {
+            if (point.x === rect_origin.x) {
+                y_max = new Vertex_2d(point.y, point.z);
+            }
+        }
+        if (y_max === undefined) {
+            console.log("!! collide_cube_to_vertical_wall_rect cannot handle the given rect_points !!");
+        }
+        let yz_line = Line_2d.get_line(y_min, y_max);
+        let flip_yz = false;
+        if (yz_line.m === Infinity) {
+            flip_yz = true;
+            y_min = new Vertex_2d(y_min.y, y_min.x);
+            y_max = new Vertex_2d(y_max.y, y_max.x);
+            yz_line = Line_2d.get_line(y_min, y_max);
+        }
+
+        // console.log(yz_line);
+    
+        let in_y_bounds = false;
+        let y_greater = false;
+        let y_lesser = false;
+        for (let point of cube_points) {
+            if (point.y >= y_min.x && point.y <= y_max.x) {
+                in_y_bounds = true;
+                break;
+            }else if (point.y > y_max.x) {
+                y_greater = true;
+                if (y_lesser) {
+                    in_y_bounds = true;
+                    break;
+                }
+            }else if (point.y < y_min.x) {
+                y_lesser = true;
+                if (y_greater) {
+                    in_y_bounds = true;
+                    break;
+                }
+            }
+        }
+        // console.log(in_y_bounds, y_greater, y_lesser);
+        if (in_y_bounds) {
+            let above_line = false;
+            let below_line = false;
+            for (let point of cube_points) {
+                let point2d = new Vertex_2d(point.y, point.z);
+                if (flip_yz) {
+                    point2d = new Vertex_2d(point2d.y, point2d.x);
+                }
+                if (yz_line.pointIsOnLine(point2d)) {
+                    yz_test_result = true;
+                    break;
+                }else if (yz_line.pointIsAboveLine(point2d)) {
+                    above_line = true;
+                    if (below_line) {
+                        yz_test_result = true;
+                        break;
+                    }
+                }else if (yz_line.pointIsBelowLine(point2d)) {
+                    below_line = true;
+                    if (above_line) {
+                        yz_test_result = true;
+                        break;
+                    }
+                }
+            }
+            // console.log(above_line, below_line);
+        }
+    }
+    
+    // x-y test
+    let xy_test_result = false;
+    if (rect_dimensions.x === 0 || rect_dimensions.y === 0) {
+        let x_min = new Vertex_2d(rect_origin.x, rect_origin.y);
+        let x_max = undefined;
+        for (let point of rect_points) {
+            if (point.z === rect_origin.z) {
+                x_max = new Vertex_2d(point.x, point.y);
+            }
+        }
+        if (x_max === undefined) {
+            console.log("!! collide_cube_to_vertical_wall_rect cannot handle the given rect_points !!");
+        }
+        let xy_line = Line_2d.get_line(x_min, x_max);
+        let flip_xy = false;
+        if (xy_line.m === Infinity) {
+            flip_xy = true;
+            x_min = new Vertex_2d(x_min.y, x_min.x);
+            x_max = new Vertex_2d(x_max.y, x_max.x);
+            xy_line = Line_2d.get_line(x_min, x_max);
+        }
+
+        // console.log(xy_line);
+    
+        let in_x_bounds = false;
+        let x_greater = false;
+        let x_lesser = false;
+        for (let point of cube_points) {
+            if (point.x >= x_min.x && point.x <= x_max.x) {
+                in_x_bounds = true;
+                break;
+            }else if (point.x > x_max.x) {
+                x_greater = true;
+                if (x_lesser) {
+                    in_x_bounds = true;
+                    break;
+                }
+            }else if (point.x < x_min.x) {
+                x_lesser = true;
+                if (x_greater) {
+                    in_x_bounds = true;
+                    break;
+                }
+            }
+        }
+        // console.log(in_y_bounds, y_greater, y_lesser);
+        if (in_x_bounds) {
+            let above_line = false;
+            let below_line = false;
+            for (let point of cube_points) {
+                let point2d = new Vertex_2d(point.x, point.y);
+                if (flip_xy) {
+                    point2d = new Vertex_2d(point2d.y, point2d.x);
+                }
+                if (xy_line.pointIsOnLine(point2d)) {
+                    xy_test_result = true;
+                    break;
+                }else if (xy_line.pointIsAboveLine(point2d)) {
+                    above_line = true;
+                    if (below_line) {
+                        xy_test_result = true;
+                        break;
+                    }
+                }else if (xy_line.pointIsBelowLine(point2d)) {
+                    below_line = true;
+                    if (above_line) {
+                        xy_test_result = true;
+                        break;
+                    }
+                }
+            }
+            // console.log(above_line, below_line);
+        }
+    }
+
+    if ((xy_test_result+yz_test_result+xz_test_result) >= 2) {
+        return true;
+    }
+    return false;
+};
+
+
 class Surface {
     vertices = [];
     color;
@@ -209,6 +674,21 @@ class Camera {
     constructor(x, y, z, theta, phi) {
         this.point = new Vertex(x, y, z);
         this.angle = new Phi_Shift_Spherical_Vertex(0, theta, phi);
+        this.physics = new Physics_Element();
+    }
+    get_bounding_points() {
+        let origin = new Vertex(this.point.x-100, this.point.y-100, this.point.z);
+        let extent = new Vertex(100, 100, 300);
+        let bounding_points = [];
+        bounding_points.push(new Vertex(origin.x, origin.y, origin.z));
+        bounding_points.push(new Vertex(origin.x+extent.x, origin.y, origin.z));
+        bounding_points.push(new Vertex(origin.x, origin.y+extent.y, origin.z));
+        bounding_points.push(new Vertex(origin.x+extent.x, origin.y+extent.y, origin.z));
+        bounding_points.push(new Vertex(origin.x, origin.y, origin.z+extent.z));
+        bounding_points.push(new Vertex(origin.x+extent.x, origin.y, origin.z+extent.z));
+        bounding_points.push(new Vertex(origin.x, origin.y+extent.y, origin.z+extent.z));
+        bounding_points.push(new Vertex(origin.x+extent.x, origin.y+extent.y, origin.z+extent.z));
+        return bounding_points;
     }
 
     moveFullRelative(vector) {
@@ -230,6 +710,7 @@ class Camera {
         angled_vector.translate(this.angle);
         angled_vector = angled_vector.to_cartesean();
         this.point.translate(angled_vector);
+        // this.physics.move(angled_vector);
     }
     moveRelative(vector) {
         // Ignores Phi
@@ -252,15 +733,67 @@ class Camera {
         angled_vector.translate(new Spherical_Vertex(0, this.angle.theta, 0));
         angled_vector = angled_vector.to_cartesean();
         this.point.translate(angled_vector);
+        // this.physics.move(angled_vector);
     }
     moveAbsolute(vector) {
         this.point.translate(vector);
+        // this.physics.move(vector);
     }
     rotate(vector) {
         this.angle.translate(vector);
         this.angle.within_bounds();
     }
-}
+};
+
+class Physics_Element {
+    z_velocity = 0;
+    on_ground = false;
+    jump_force = 7;
+    fall_accel = 0.1;
+    bounding_points = [];
+
+    constructor(/*cube_origin, cube_extent*/) {
+        // this.set_bounding_points_cube(cube_origin, cube_extent);
+    }
+    // set_bounding_points_cube(origin, extent) {
+    //     this.bounding_points = [];
+    //     this.bounding_points.push(new Vertex(origin.x, origin.y, origin.z));
+    //     this.bounding_points.push(new Vertex(origin.x+extent.x, origin.y, origin.z));
+    //     this.bounding_points.push(new Vertex(origin.x, origin.y+extent.y, origin.z));
+    //     this.bounding_points.push(new Vertex(origin.x+extent.x, origin.y+extent.y, origin.z));
+    //     this.bounding_points.push(new Vertex(origin.x, origin.y, origin.z+extent.z));
+    //     this.bounding_points.push(new Vertex(origin.x+extent.x, origin.y, origin.z+extent.z));
+    //     this.bounding_points.push(new Vertex(origin.x, origin.y+extent.y, origin.z+extent.z));
+    //     this.bounding_points.push(new Vertex(origin.x+extent.x, origin.y+extent.y, origin.z+extent.z));
+    // }
+    set_physics(jump_force, fall_accel) {
+        this.jump_force = jump_force;
+        this.fall_accel = fall_accel;
+    }
+    canJump() {
+        if (this.on_ground) {
+            return true;
+        }
+        return false;
+    }
+    jump(force) {
+        this.z_velocity = force || this.jump_force;
+    }
+    land() {
+        this.z_velocity = 0;
+        this.on_ground = true;
+    }
+    fall() {
+        this.on_ground = false;
+        this.z_velocity -= this.fall_accel;
+        return this.z_velocity;
+    }
+    // move(vector) {
+    //     for (let point of this.bounding_points) {
+    //         point.translate(vector);
+    //     }
+    // }
+};
 
 class WeltContext {
     vertices = [];
@@ -271,7 +804,7 @@ class WeltContext {
     // vanish = 10000;
     // los = 6000;
     distinguishable_size = 0.0003; // 0.0003 rad = 1 arcminute = how small an object humans can make out
-    focus = 1000; // Distance at which objects are x pixels large, x being size in code
+    focus = 500; // Distance at which objects are x pixels large, x being size in code
 
     constructor() {
         // this.camera = new Camera(0, -400, 0, 0, 0);
@@ -334,7 +867,55 @@ class WeltContext {
             ctx.fillRect(center_x+vertex.x, center_y+vertex.y, 1, 1);
         }
 
-        for (let surface of this.floor_surfaces) {
+        let surfaces_sorted = [];
+        for (let i in this.floor_surfaces) {
+            let surface = this.floor_surfaces[i];
+            let average_dist = 0;
+            // let min_dist = this.los;
+            let one_on_screen = false;
+            let one_on_screen_x = false;
+            let offscreen_posx = false;
+            let offscreen_negx = false;
+            let offscreen_posy = false;
+            let offscreen_negy = false;
+            for (let vert_index of surface.vertices) {
+                average_dist += vertex_positions[vert_index].z;
+                // min_dist = Math.min(vertex_positions[vert_index].z, min_dist);
+                if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].angular_diameter > this.distinguishable_size) {
+                    one_on_screen = true;
+                }
+                if (vertex_positions[vert_index].x > -(width/2) && vertex_positions[vert_index].x < (width/2)
+                    && vertex_positions[vert_index].y > -(height/2) && vertex_positions[vert_index].y < (height/2)) {
+                    one_on_screen_x = true;
+                }else {
+                    if (vertex_positions[vert_index].x < -(width/2)) {
+                        offscreen_negx = true;
+                    }
+                    if (vertex_positions[vert_index].x > (width/2)) {
+                        offscreen_posx = true;
+                    }
+                    if (vertex_positions[vert_index].y < -(height/2)) {
+                        offscreen_negy = true;
+                    }
+                    if (vertex_positions[vert_index].y > (height/2)) {
+                        offscreen_posy = true;
+                    }
+                }
+            }
+            if ((offscreen_negx+offscreen_posx) === 2 || (offscreen_negy+offscreen_posy) === 2) {
+                one_on_screen_x = true;
+            }
+            average_dist /= surface.vertices.length;
+            if (one_on_screen && one_on_screen_x) {
+                surfaces_sorted.push({index: i, dist: average_dist});
+                // surfaces_sorted.push({index: i, dist: min_dist});
+            }
+        }
+        
+        surfaces_sorted.sort((a,b) => b.dist-a.dist);
+
+        for (let surf_index of surfaces_sorted) {
+            let surface = this.floor_surfaces[surf_index.index];
             ctx.fillStyle = surface.color;
             ctx.beginPath();
             ctx.moveTo(center_x+vertex_positions[surface.vertices[0]].x, center_y+vertex_positions[surface.vertices[0]].y);
@@ -346,7 +927,7 @@ class WeltContext {
             ctx.fill();
         }
 
-        let surfaces_sorted = [];
+        surfaces_sorted = [];
         for (let i in this.surfaces) {
             let surface = this.surfaces[i];
             let average_dist = 0;
@@ -405,6 +986,68 @@ class WeltContext {
             ctx.stroke();
             ctx.fill();
         }
+    }
+    physics() {
+        this.camera.point.translate(new Vertex(0, 0, -this.camera.physics.fall()));
+        let in_a_floor = false;
+        let collided_surface = undefined;
+        for (let floor of this.floor_surfaces) {
+            if (collide_cube_to_floor_rect(this.camera.get_bounding_points(), this.indices_to_vertices(floor.vertices))) {
+                in_a_floor = true;
+                collided_surface = floor;
+                break;
+            }
+        }
+        if (in_a_floor) {
+            this.camera.physics.land();
+            while (collide_cube_to_floor_rect(this.camera.get_bounding_points(), this.indices_to_vertices(collided_surface.vertices))) {
+                this.camera.point.translate(new Vertex(0, 0, -1));
+            }
+        }
+    }
+
+    moveCameraFullRelative(vector) {
+        this.camera.moveFullRelative(vector);
+        // this.camera_to_wall_collision(0, vector);
+    }
+    moveCameraRelative(vector) {
+        this.camera.moveRelative(vector);
+        // this.camera_to_wall_collision(1, vector);
+    }
+    moveCameraAbsolute(vector) {
+        this.camera.moveAbsolute(vector);
+        // this.camera_to_wall_collision(2, vector);
+    }
+    rotateCamera(vector) {
+        this.camera.rotate(vector);
+    }
+
+    camera_to_wall_collision(move_type, vector) {
+        let in_a_wall = false;
+        let reverse_vector = vector.copy();
+        reverse_vector.scale(new Vertex(0.1, 0.1, 0.1));
+        reverse_vector.invert();
+        for (let surface of this.surfaces) {
+            while (collide_cube_to_vertical_wall_rect(this.camera.get_bounding_points(), this.indices_to_vertices(surface.vertices))) {
+                switch (move_type) {
+                    case 0:
+                        this.camera.moveFullRelative(reverse_vector);
+                    case 1:
+                        this.camera.moveRelative(reverse_vector);
+                    case 2:
+                        this.camera.moveAbsolute(reverse_vector);
+                }
+                console.log("this happening?");
+            }
+        }
+    }
+
+    indices_to_vertices(indices) {
+        let vertices = [];
+        for (let index of indices) {
+            vertices.push(this.vertices[index]);
+        }
+        return vertices;
     }
 };
 
@@ -532,6 +1175,13 @@ function AddCube(welt_ctx, point, width, length, height, sides, options) {
     }
 };
 
+function AddRect(welt_ctx, point, width, length, options) {
+    // point is back, left
+    // options are from_spherical (bool), as_floor (bool), color (color)
+
+    // Hack, I've already written the code
+    AddTiledRect(welt_ctx, point, width, length, 1, 1, options);
+};
 function AddTiledRect(welt_ctx, point, width, length, x_tiles, y_tiles, options) {
     // point is back, left
     // options are from_spherical (bool), as_floor (bool), color (color)
