@@ -27,7 +27,9 @@ class Spherical_Vertex {
         let z = this.r*Math.cos(this.phi);
         let x = this.r*Math.cos(this.theta)*Math.sin(this.phi);
         let y = this.r*Math.sin(this.theta)*Math.sin(this.phi);
-        return new Vertex(x, y, z);
+        let ret = new Vertex(x, y, z);
+        ret.r = this.r;
+        return ret;
     }
     copy() {
         return new Spherical_Vertex(this.r, this.theta, this.phi);
@@ -113,6 +115,8 @@ class Vertex {
         this.x = point.x;
         this.y = point.y;
         this.z = y;
+        this.actual_y = z;
+        this.actual_z = this.r;
     }
 
     debug_text(txt, x, y, ctx) {
@@ -425,6 +429,8 @@ function collide_cube_to_vertical_wall_rect(cube_points, rect_points) {
     // x-z test
     let xz_test_result = false;
     if (rect_dimensions.x === 0 || rect_dimensions.z === 0) {
+        // console.log("X-Z Test");
+
         let x_min = new Vertex_2d(rect_origin.x, rect_origin.z);
         // let x_max = new Vertex_2d(rect_origin.x+rect_dimensions.x, rect_origin.z+rect_dimensions.z);
         let x_max = undefined;
@@ -445,31 +451,54 @@ function collide_cube_to_vertical_wall_rect(cube_points, rect_points) {
             xz_line = Line_2d.get_line(x_min, x_max);
         }
 
-        // console.log(xz_line);
+        // console.log(xz_line, flip_xz);
 
-        let in_x_bounds = false;
-        let x_greater = false;
-        let x_lesser = false;
-        for (let point of cube_points) {
-            if (point.x >= x_min.x && point.x <= x_max.x) {
-                in_x_bounds = true;
-                break;
-            }else if (point.x > x_max.x) {
-                x_greater = true;
-                if (x_lesser) {
-                    in_x_bounds = true;
+        let in_bounds = false;
+        if (!flip_xz) {
+            let x_greater = false;
+            let x_lesser = false;
+            for (let point of cube_points) {
+                if (point.x >= x_min.x && point.x <= x_max.x) {
+                    in_bounds = true;
                     break;
+                }else if (point.x > x_max.x) {
+                    x_greater = true;
+                    if (x_lesser) {
+                        in_bounds = true;
+                        break;
+                    }
+                }else if (point.x < x_min.x) {
+                    x_lesser = true;
+                    if (x_greater) {
+                        in_bounds = true;
+                        break;
+                    }
                 }
-            }else if (point.x < x_min.x) {
-                x_lesser = true;
-                if (x_greater) {
-                    in_x_bounds = true;
+            }
+        }else {
+            let z_greater = false;
+            let z_lesser = false;
+            for (let point of cube_points) {
+                if (point.z >= x_min.x && point.z <= x_max.x) {
+                    in_bounds = true;
                     break;
+                }else if (point.z > x_max.x) {
+                    z_greater = true;
+                    if (z_lesser) {
+                        in_bounds = true;
+                        break;
+                    }
+                }else if (point.z < x_min.x) {
+                    z_lesser = true;
+                    if (z_greater) {
+                        in_bounds = true;
+                        break;
+                    }
                 }
             }
         }
         // console.log(in_x_bounds, x_greater, x_lesser);
-        if (in_x_bounds) {
+        if (in_bounds) {
             let above_line = false;
             let below_line = false;
             for (let point of cube_points) {
@@ -496,11 +525,15 @@ function collide_cube_to_vertical_wall_rect(cube_points, rect_points) {
             }
             // console.log(above_line, below_line);
         }
+
+        // console.log(xz_test_result);
     }
 
     // y-z test
     let yz_test_result = false;
     if (rect_dimensions.y === 0 || rect_dimensions.z === 0) {
+        // console.log("Y-Z Test");
+
         let y_min = new Vertex_2d(rect_origin.y, rect_origin.z);
         // let y_max = new Vertex_2d(rect_origin.y+rect_dimensions.y, rect_origin.z+rect_dimensions.z);
         let y_max = undefined;
@@ -521,31 +554,54 @@ function collide_cube_to_vertical_wall_rect(cube_points, rect_points) {
             yz_line = Line_2d.get_line(y_min, y_max);
         }
 
-        // console.log(yz_line);
+        // console.log(yz_line, flip_yz);
     
-        let in_y_bounds = false;
-        let y_greater = false;
-        let y_lesser = false;
-        for (let point of cube_points) {
-            if (point.y >= y_min.x && point.y <= y_max.x) {
-                in_y_bounds = true;
-                break;
-            }else if (point.y > y_max.x) {
-                y_greater = true;
-                if (y_lesser) {
-                    in_y_bounds = true;
+        let in_bounds = false;
+        if (!flip_yz) {
+            let y_greater = false;
+            let y_lesser = false;
+            for (let point of cube_points) {
+                if (point.y >= y_min.x && point.y <= y_max.x) {
+                    in_bounds = true;
                     break;
+                }else if (point.y > y_max.x) {
+                    y_greater = true;
+                    if (y_lesser) {
+                        in_bounds = true;
+                        break;
+                    }
+                }else if (point.y < y_min.x) {
+                    y_lesser = true;
+                    if (y_greater) {
+                        in_bounds = true;
+                        break;
+                    }
                 }
-            }else if (point.y < y_min.x) {
-                y_lesser = true;
-                if (y_greater) {
-                    in_y_bounds = true;
+            }
+        }else {
+            let z_greater = false;
+            let z_lesser = false;
+            for (let point of cube_points) {
+                if (point.z >= y_min.x && point.z <= y_max.x) {
+                    in_bounds = true;
                     break;
+                }else if (point.z > y_max.x) {
+                    z_greater = true;
+                    if (z_lesser) {
+                        in_bounds = true;
+                        break;
+                    }
+                }else if (point.z < y_min.x) {
+                    z_lesser = true;
+                    if (z_greater) {
+                        in_bounds = true;
+                        break;
+                    }
                 }
             }
         }
         // console.log(in_y_bounds, y_greater, y_lesser);
-        if (in_y_bounds) {
+        if (in_bounds) {
             let above_line = false;
             let below_line = false;
             for (let point of cube_points) {
@@ -572,11 +628,15 @@ function collide_cube_to_vertical_wall_rect(cube_points, rect_points) {
             }
             // console.log(above_line, below_line);
         }
+
+        // console.log(yz_test_result);
     }
     
     // x-y test
     let xy_test_result = false;
     if (rect_dimensions.x === 0 || rect_dimensions.y === 0) {
+        // console.log("X-Y Test");
+
         let x_min = new Vertex_2d(rect_origin.x, rect_origin.y);
         let x_max = undefined;
         for (let point of rect_points) {
@@ -596,31 +656,54 @@ function collide_cube_to_vertical_wall_rect(cube_points, rect_points) {
             xy_line = Line_2d.get_line(x_min, x_max);
         }
 
-        // console.log(xy_line);
+        // console.log(xy_line, flip_xy);
     
-        let in_x_bounds = false;
-        let x_greater = false;
-        let x_lesser = false;
-        for (let point of cube_points) {
-            if (point.x >= x_min.x && point.x <= x_max.x) {
-                in_x_bounds = true;
-                break;
-            }else if (point.x > x_max.x) {
-                x_greater = true;
-                if (x_lesser) {
-                    in_x_bounds = true;
+        let in_bounds = false;
+        if (!flip_xy) {
+            let x_greater = false;
+            let x_lesser = false;
+            for (let point of cube_points) {
+                if (point.x >= x_min.x && point.x <= x_max.x) {
+                    in_bounds = true;
                     break;
+                }else if (point.x > x_max.x) {
+                    x_greater = true;
+                    if (x_lesser) {
+                        in_bounds = true;
+                        break;
+                    }
+                }else if (point.x < x_min.x) {
+                    x_lesser = true;
+                    if (x_greater) {
+                        in_bounds = true;
+                        break;
+                    }
                 }
-            }else if (point.x < x_min.x) {
-                x_lesser = true;
-                if (x_greater) {
-                    in_x_bounds = true;
+            }
+        }else {
+            let y_greater = false;
+            let y_lesser = false;
+            for (let point of cube_points) {
+                if (point.y >= x_min.x && point.y <= x_max.x) {
+                    in_bounds = true;
                     break;
+                }else if (point.y > x_max.x) {
+                    y_greater = true;
+                    if (y_lesser) {
+                        in_bounds = true;
+                        break;
+                    }
+                }else if (point.y < x_min.x) {
+                    y_lesser = true;
+                    if (y_greater) {
+                        in_bounds = true;
+                        break;
+                    }
                 }
             }
         }
-        // console.log(in_y_bounds, y_greater, y_lesser);
-        if (in_x_bounds) {
+        // console.log(in_x_bounds, x_greater, x_lesser);
+        if (in_bounds) {
             let above_line = false;
             let below_line = false;
             for (let point of cube_points) {
@@ -647,6 +730,8 @@ function collide_cube_to_vertical_wall_rect(cube_points, rect_points) {
             }
             // console.log(above_line, below_line);
         }
+
+        // console.log(xy_test_result);
     }
 
     if ((xy_test_result+yz_test_result+xz_test_result) >= 2) {
@@ -660,10 +745,29 @@ class Surface {
     vertices = [];
     color;
 
-    constructor(vertices, color) {
+    static surface = 0;
+    static floor = 1;
+    static platform = 2;
+    static wall = 3;
+
+    constructor(vertices, color, type) {
         // vertices is a list of the indexes of the vertices it is between
         this.vertices = vertices;
         this.color = color;
+        this.type = type;
+    }
+
+    isWalkable() {
+        if (this.type === Surface.floor || this.type == Surface.platform) {
+            return true;
+        }
+        return false;
+    }
+    isBonkable() {
+        if (this.type === Surface.wall) {
+            return true;
+        }
+        return false;
     }
 };
 
@@ -678,7 +782,7 @@ class Camera {
     }
     get_bounding_points() {
         let origin = new Vertex(this.point.x-100, this.point.y-100, this.point.z);
-        let extent = new Vertex(100, 100, 300);
+        let extent = new Vertex(200, 200, 300);
         let bounding_points = [];
         bounding_points.push(new Vertex(origin.x, origin.y, origin.z));
         bounding_points.push(new Vertex(origin.x+extent.x, origin.y, origin.z));
@@ -795,16 +899,18 @@ class Physics_Element {
     // }
 };
 
+
 class WeltContext {
     vertices = [];
     surfaces = [];
-    floor_surfaces = [];
     camera;
     light;
     // vanish = 10000;
     // los = 6000;
     distinguishable_size = 0.0003; // 0.0003 rad = 1 arcminute = how small an object humans can make out
     focus = 500; // Distance at which objects are x pixels large, x being size in code
+
+    floors = [1000000, 0, -1000000];
 
     constructor() {
         // this.camera = new Camera(0, -400, 0, 0, 0);
@@ -815,17 +921,17 @@ class WeltContext {
         this.vertices = [];
         this.surfaces = [];
     }
+    set_floors(floors) {
+        this.floors = floors;
+    }
 
     add_vertex(x, y, z) {
         // Makes a new vertex and returns the index of that vertex
         this.vertices.push(new Vertex(x, y, z));
         return this.vertices.length-1;
     }
-    add_surface(vertices, color) {
-        this.surfaces.push(new Surface(vertices, color));
-    }
-    add_floor(vertices, color) {
-        this.floor_surfaces.push(new Surface(vertices, color));
+    add_surface(vertices, color, type) {
+        this.surfaces.push(new Surface(vertices, color, type));
     }
 
     render(x, y, width, height, ctx) {
@@ -867,70 +973,14 @@ class WeltContext {
             ctx.fillRect(center_x+vertex.x, center_y+vertex.y, 1, 1);
         }
 
-        let surfaces_sorted = [];
-        for (let i in this.floor_surfaces) {
-            let surface = this.floor_surfaces[i];
-            let average_dist = 0;
-            // let min_dist = this.los;
-            let one_on_screen = false;
-            let one_on_screen_x = false;
-            let offscreen_posx = false;
-            let offscreen_negx = false;
-            let offscreen_posy = false;
-            let offscreen_negy = false;
-            for (let vert_index of surface.vertices) {
-                average_dist += vertex_positions[vert_index].z;
-                // min_dist = Math.min(vertex_positions[vert_index].z, min_dist);
-                if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].angular_diameter > this.distinguishable_size) {
-                    one_on_screen = true;
-                }
-                if (vertex_positions[vert_index].x > -(width/2) && vertex_positions[vert_index].x < (width/2)
-                    && vertex_positions[vert_index].y > -(height/2) && vertex_positions[vert_index].y < (height/2)) {
-                    one_on_screen_x = true;
-                }else {
-                    if (vertex_positions[vert_index].x < -(width/2)) {
-                        offscreen_negx = true;
-                    }
-                    if (vertex_positions[vert_index].x > (width/2)) {
-                        offscreen_posx = true;
-                    }
-                    if (vertex_positions[vert_index].y < -(height/2)) {
-                        offscreen_negy = true;
-                    }
-                    if (vertex_positions[vert_index].y > (height/2)) {
-                        offscreen_posy = true;
-                    }
-                }
-            }
-            if ((offscreen_negx+offscreen_posx) === 2 || (offscreen_negy+offscreen_posy) === 2) {
-                one_on_screen_x = true;
-            }
-            average_dist /= surface.vertices.length;
-            if (one_on_screen && one_on_screen_x) {
-                surfaces_sorted.push({index: i, dist: average_dist});
-                // surfaces_sorted.push({index: i, dist: min_dist});
-            }
+        let split_floors = [];
+        for (let i = 0; i+1 < this.floors.length; i++) {
+            split_floors.push({floor_surfaces: [], surfaces: []});
         }
-        
-        surfaces_sorted.sort((a,b) => b.dist-a.dist);
-
-        for (let surf_index of surfaces_sorted) {
-            let surface = this.floor_surfaces[surf_index.index];
-            ctx.fillStyle = surface.color;
-            ctx.beginPath();
-            ctx.moveTo(center_x+vertex_positions[surface.vertices[0]].x, center_y+vertex_positions[surface.vertices[0]].y);
-            for (let i = 1; i < surface.vertices.length; i++) {
-                ctx.lineTo(center_x+vertex_positions[surface.vertices[i]].x, center_y+vertex_positions[surface.vertices[i]].y);
-            }
-            ctx.closePath();
-            ctx.stroke();
-            ctx.fill();
-        }
-
-        surfaces_sorted = [];
         for (let i in this.surfaces) {
             let surface = this.surfaces[i];
             let average_dist = 0;
+            let average_height = 0;
             // let min_dist = this.los;
             let one_on_screen = false;
             let one_on_screen_x = false;
@@ -939,7 +989,9 @@ class WeltContext {
             let offscreen_posy = false;
             let offscreen_negy = false;
             for (let vert_index of surface.vertices) {
-                average_dist += vertex_positions[vert_index].z;
+                // average_dist += vertex_positions[vert_index].z;
+                average_dist += vertex_positions[vert_index].actual_z;
+                average_height += this.vertices[vert_index].z;
                 // min_dist = Math.min(vertex_positions[vert_index].z, min_dist);
                 if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].angular_diameter > this.distinguishable_size) {
                     one_on_screen = true;
@@ -966,17 +1018,39 @@ class WeltContext {
                 one_on_screen_x = true;
             }
             average_dist /= surface.vertices.length;
+            average_height /= surface.vertices.length;
             if (one_on_screen && one_on_screen_x) {
-                surfaces_sorted.push({index: i, dist: average_dist});
+                // surfaces_sorted.push({floor: false, index: i, dist: average_dist, height: average_height});
                 // surfaces_sorted.push({index: i, dist: min_dist});
+
+                let floor_index = 0;
+                while (average_height <= this.floors[floor_index+1] && floor_index < split_floors.length-1) {
+                    floor_index += 1;
+                }
+                // console.log(split_floors, floor_index);
+                if (surface.type === Surface.floor) {
+                    split_floors[floor_index].floor_surfaces.push({index: i, dist: average_dist, height: average_height});
+                }else {
+                    split_floors[floor_index].surfaces.push({index: i, dist: average_dist, height: average_height});
+                }
             }
         }
+        
+        for (let floor of split_floors) {
+            floor.floor_surfaces.sort((a, b) => b.dist-a.dist);
+            floor.surfaces.sort((a, b) => b.dist-a.dist);
+        }
+        // surfaces_sorted.sort((a,b) => /*b.height-a.height || */b.dist-a.dist);
 
-        surfaces_sorted.sort((a,b) => b.dist-a.dist);
-
-        for (let surf_index of surfaces_sorted) {
-            let surface = this.surfaces[surf_index.index];
+        let char_floor = 0;
+        while (this.camera.point.z < this.floors[char_floor+1] && char_floor < split_floors.length-1) {
+            char_floor += 1;
+        }
+        console.log(char_floor);
+        
+        function draw_surface(surface) {
             ctx.fillStyle = surface.color;
+            ctx.strokeStyle = "#000000";
             ctx.beginPath();
             ctx.moveTo(center_x+vertex_positions[surface.vertices[0]].x, center_y+vertex_positions[surface.vertices[0]].y);
             for (let i = 1; i < surface.vertices.length; i++) {
@@ -985,17 +1059,115 @@ class WeltContext {
             ctx.closePath();
             ctx.stroke();
             ctx.fill();
+        };
+
+        for (let i = 0; i < char_floor; i++) {
+            for (let floor of split_floors[i].floor_surfaces) {
+                draw_surface(this.surfaces[floor.index]);
+            }
+            for (let surface of split_floors[i].surfaces) {
+                draw_surface(this.surfaces[surface.index]);
+            }
         }
+        for (let i = split_floors.length-1; i > char_floor; i--) {
+            for (let surface of split_floors[i].surfaces) {
+                draw_surface(this.surfaces[surface.index]);
+            }
+            for (let floor of split_floors[i].floor_surfaces) {
+                draw_surface(this.surfaces[floor.index]);
+            }
+        }
+        for (let floor of split_floors[char_floor].floor_surfaces) {
+            draw_surface(this.surfaces[floor.index]);
+        }
+        for (let surface of split_floors[char_floor].surfaces) {
+            draw_surface(this.surfaces[surface.index]);
+        }
+        // for (let surf_index of surfaces_sorted) {
+        //     let surface = this.surfaces[surf_index.index];
+        // }
+
+        // surfaces_sorted = [];
+        // for (let i in this.surfaces) {
+        //     let surface = this.surfaces[i];
+        //     if (surface.type !== Surface.floor) {
+        //         let average_dist = 0;
+        //         let average_height = 0;
+        //         // let min_dist = this.los;
+        //         let one_on_screen = false;
+        //         let one_on_screen_x = false;
+        //         let offscreen_posx = false;
+        //         let offscreen_negx = false;
+        //         let offscreen_posy = false;
+        //         let offscreen_negy = false;
+        //         for (let vert_index of surface.vertices) {
+        //             // average_dist += vertex_positions[vert_index].z;
+        //             average_dist += vertex_positions[vert_index].actual_z;
+        //             average_height += vertex_positions[vert_index].actual_y;
+        //             // min_dist = Math.min(vertex_positions[vert_index].z, min_dist);
+        //             if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].angular_diameter > this.distinguishable_size) {
+        //                 one_on_screen = true;
+        //             }
+        //             if (vertex_positions[vert_index].x > -(width/2) && vertex_positions[vert_index].x < (width/2)
+        //                 && vertex_positions[vert_index].y > -(height/2) && vertex_positions[vert_index].y < (height/2)) {
+        //                 one_on_screen_x = true;
+        //             }else {
+        //                 if (vertex_positions[vert_index].x < -(width/2)) {
+        //                     offscreen_negx = true;
+        //                 }
+        //                 if (vertex_positions[vert_index].x > (width/2)) {
+        //                     offscreen_posx = true;
+        //                 }
+        //                 if (vertex_positions[vert_index].y < -(height/2)) {
+        //                     offscreen_negy = true;
+        //                 }
+        //                 if (vertex_positions[vert_index].y > (height/2)) {
+        //                     offscreen_posy = true;
+        //                 }
+        //             }
+        //         }
+        //         if ((offscreen_negx+offscreen_posx) === 2 || (offscreen_negy+offscreen_posy) === 2) {
+        //             one_on_screen_x = true;
+        //         }
+        //         average_dist /= surface.vertices.length;
+        //         average_height /= surface.vertices.length;
+        //         if (one_on_screen && one_on_screen_x) {
+        //             surfaces_sorted.push({floor: false, index: i, dist: average_dist, height: average_height});
+        //             // surfaces_sorted.push({index: i, dist: min_dist});
+        //         }
+        //     }
+        // }
+
+        // surfaces_sorted.sort((a,b) => b.dist-a.dist);
+
+        // for (let surf_index of surfaces_sorted) {
+        //     let surface = this.surfaces[surf_index.index];
+        //     ctx.fillStyle = surface.color;
+        //     ctx.strokeStyle = "#000000";
+        //     ctx.beginPath();
+        //     ctx.moveTo(center_x+vertex_positions[surface.vertices[0]].x, center_y+vertex_positions[surface.vertices[0]].y);
+        //     for (let i = 1; i < surface.vertices.length; i++) {
+        //         ctx.lineTo(center_x+vertex_positions[surface.vertices[i]].x, center_y+vertex_positions[surface.vertices[i]].y);
+        //     }
+        //     ctx.closePath();
+        //     ctx.stroke();
+        //     ctx.fill();
+        // }
     }
     physics() {
         this.camera.point.translate(new Vertex(0, 0, -this.camera.physics.fall()));
+        this.camera_to_floor_collision();
+    }
+    camera_to_floor_collision() {
         let in_a_floor = false;
         let collided_surface = undefined;
-        for (let floor of this.floor_surfaces) {
-            if (collide_cube_to_floor_rect(this.camera.get_bounding_points(), this.indices_to_vertices(floor.vertices))) {
-                in_a_floor = true;
-                collided_surface = floor;
-                break;
+        for (let floor of this.surfaces) {
+            if (floor.isWalkable()) {
+                if (collide_cube_to_floor_rect(this.camera.get_bounding_points(), this.indices_to_vertices(floor.vertices))) {
+                    in_a_floor = true;
+                    collided_surface = floor;
+                    break;
+                }
             }
         }
         if (in_a_floor) {
@@ -1008,36 +1180,40 @@ class WeltContext {
 
     moveCameraFullRelative(vector) {
         this.camera.moveFullRelative(vector);
-        // this.camera_to_wall_collision(0, vector);
+        this.camera_to_floor_collision();
+        this.camera_to_wall_collision(0, vector);
     }
     moveCameraRelative(vector) {
         this.camera.moveRelative(vector);
-        // this.camera_to_wall_collision(1, vector);
+        this.camera_to_floor_collision();
+        this.camera_to_wall_collision(1, vector);
     }
     moveCameraAbsolute(vector) {
         this.camera.moveAbsolute(vector);
-        // this.camera_to_wall_collision(2, vector);
+        this.camera_to_floor_collision();
+        this.camera_to_wall_collision(2, vector);
     }
     rotateCamera(vector) {
         this.camera.rotate(vector);
     }
 
     camera_to_wall_collision(move_type, vector) {
-        let in_a_wall = false;
         let reverse_vector = vector.copy();
-        reverse_vector.scale(new Vertex(0.1, 0.1, 0.1));
+        // reverse_vector.scale(new Vertex(0.1, 0.1, 0.1));
         reverse_vector.invert();
+        // console.log(vector, reverse_vector);
         for (let surface of this.surfaces) {
-            while (collide_cube_to_vertical_wall_rect(this.camera.get_bounding_points(), this.indices_to_vertices(surface.vertices))) {
-                switch (move_type) {
-                    case 0:
-                        this.camera.moveFullRelative(reverse_vector);
-                    case 1:
-                        this.camera.moveRelative(reverse_vector);
-                    case 2:
-                        this.camera.moveAbsolute(reverse_vector);
+            if (surface.isBonkable()) {
+                while (collide_cube_to_vertical_wall_rect(this.camera.get_bounding_points(), this.indices_to_vertices(surface.vertices))) {
+                    switch (move_type) {
+                        case 0:
+                            this.camera.moveFullRelative(reverse_vector);
+                        case 1:
+                            this.camera.moveRelative(reverse_vector);
+                        case 2:
+                            this.camera.moveAbsolute(reverse_vector);
+                    }
                 }
-                console.log("this happening?");
             }
         }
     }
@@ -1085,24 +1261,24 @@ function AddPrism(welt_ctx, point, radius, height, sides, options) {
 
     if (sides[0]) {
         if (!options.as_floor) {
-            welt_ctx.add_surface(top_corners, color);
+            welt_ctx.add_surface(top_corners, color, Surface.platform);
         }else {
-            welt_ctx.add_floor(top_corners, color);
+            welt_ctx.add_surface(top_corners, color, Surface.floor);
         }
     }
     if (sides[1]) {
         if (!options.as_floor) {
-            welt_ctx.add_surface(corners, color);
+            welt_ctx.add_surface(corners, color, Surface.platform);
         }else {
-            welt_ctx.add_floor(corners, color);
+            welt_ctx.add_surface(corners, color, Surface.floor);
         }
     }
     for (let i = 0; i < num_sides; i++) {
         if (sides[i+2]) {
             if (!options.as_floor) {
-                welt_ctx.add_surface([corners[i], top_corners[i], top_corners[(i+1) % num_sides], corners[(i+1) % num_sides]], color);
+                welt_ctx.add_surface([corners[i], top_corners[i], top_corners[(i+1) % num_sides], corners[(i+1) % num_sides]], color, Surface.surface);
             }else {
-                welt_ctx.add_floor([corners[i], top_corners[i], top_corners[(i+1) % num_sides], corners[(i+1) % sides]], color);
+                welt_ctx.add_surface([corners[i], top_corners[i], top_corners[(i+1) % num_sides], corners[(i+1) % sides]], color, Surface.surface);
             }
         }
     }
@@ -1133,44 +1309,44 @@ function AddCube(welt_ctx, point, width, length, height, sides, options) {
 
     if (sides[0]) {
         if (!options.as_floor) {
-            welt_ctx.add_surface([top_back_left, top_back_right, top_front_right, top_front_left], color);
+            welt_ctx.add_surface([top_back_left, top_back_right, top_front_right, top_front_left], color, Surface.platform);
         }else {
-            welt_ctx.add_floor([top_back_left, top_back_right, top_front_right, top_front_left], color);
+            welt_ctx.add_surface([top_back_left, top_back_right, top_front_right, top_front_left], color, Surface.floor);
         }
     }
     if (sides[1]) {
         if (!options.as_floor) {
-            welt_ctx.add_surface([bottom_back_left, bottom_back_right, bottom_front_right, bottom_front_left], color);
+            welt_ctx.add_surface([bottom_back_left, bottom_back_right, bottom_front_right, bottom_front_left], color, Surface.platform);
         }else {
-            welt_ctx.add_floor([bottom_back_left, bottom_back_right, bottom_front_right, bottom_front_left], color);
+            welt_ctx.add_surface([bottom_back_left, bottom_back_right, bottom_front_right, bottom_front_left], color, Surface.floor);
         }
     }
     if (sides[2]) {
         if (!options.as_floor) {
-            welt_ctx.add_surface([bottom_back_left, bottom_back_right, top_back_right, top_back_left], color);
+            welt_ctx.add_surface([bottom_back_left, bottom_back_right, top_back_right, top_back_left], color, Surface.wall);
         }else {
-            welt_ctx.add_floor([bottom_back_left, bottom_back_right, top_back_right, top_back_left], color);
+            welt_ctx.add_surface([bottom_back_left, bottom_back_right, top_back_right, top_back_left], color, Surface.floor);
         }
     }
     if (sides[3]) {
         if (!options.as_floor) {
-            welt_ctx.add_surface([bottom_front_right, bottom_back_right, top_back_right, top_front_right], color);
+            welt_ctx.add_surface([bottom_front_right, bottom_back_right, top_back_right, top_front_right], color, Surface.wall);
         }else {
-            welt_ctx.add_floor([bottom_front_right, bottom_back_right, top_back_right, top_front_right], color);
+            welt_ctx.add_surface([bottom_front_right, bottom_back_right, top_back_right, top_front_right], color, Surface.floor);
         }
     }
     if (sides[4]) {
         if (!options.as_floor) {
-            welt_ctx.add_surface([bottom_front_right, bottom_front_left, top_front_left, top_front_right], color);
+            welt_ctx.add_surface([bottom_front_right, bottom_front_left, top_front_left, top_front_right], color, Surface.wall);
         }else {
-            welt_ctx.add_floor([bottom_front_right, bottom_front_left, top_front_left, top_front_right], color);
+            welt_ctx.add_surface([bottom_front_right, bottom_front_left, top_front_left, top_front_right], color, Surface.floor);
         }
     }
     if (sides[5]) {
         if (!options.as_floor) {
-            welt_ctx.add_surface([bottom_back_left, bottom_front_left, top_front_left, top_back_left], color);
+            welt_ctx.add_surface([bottom_back_left, bottom_front_left, top_front_left, top_back_left], color, Surface.wall);
         }else {
-            welt_ctx.add_floor([bottom_back_left, bottom_front_left, top_front_left, top_back_left], color);
+            welt_ctx.add_surface([bottom_back_left, bottom_front_left, top_front_left, top_back_left], color, Surface.floor);
         }
     }
 };
@@ -1203,9 +1379,9 @@ function AddTiledRect(welt_ctx, point, width, length, x_tiles, y_tiles, options)
     for (let i = 0; i < x_tiles; i++) {
         for (let j = 0; j < y_tiles; j++) {
             if (!options.as_floor) {
-                welt_ctx.add_surface([vertices[i][j], vertices[i+1][j], vertices[i+1][j+1], vertices[i][j+1]], color);
+                welt_ctx.add_surface([vertices[i][j], vertices[i+1][j], vertices[i+1][j+1], vertices[i][j+1]], color, Surface.platform);
             }else {
-                welt_ctx.add_floor([vertices[i][j], vertices[i+1][j], vertices[i+1][j+1], vertices[i][j+1]], color);
+                welt_ctx.add_surface([vertices[i][j], vertices[i+1][j], vertices[i+1][j+1], vertices[i][j+1]], color, Surface.floor);
             }
         }
     }

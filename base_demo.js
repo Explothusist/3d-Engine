@@ -76,7 +76,7 @@ function add_checker_board(x, y, z) {
             if (((i+j) % 2) === 0) {
                 color = "#FFFFFF";
             }
-            welt_ctx.add_floor([far_right, far_left, back_left, back_right], color);
+            welt_ctx.add_surface([far_right, far_left, back_left, back_right], color, Surface.surface);
         }
     }
 };
@@ -91,21 +91,21 @@ function add_tree(x, y, z) {
     let top_near_right = welt_ctx.add_vertex(x-100, y, z-400);
     let top_far = welt_ctx.add_vertex(x-50, y+100, z-400);
 
-    welt_ctx.add_surface([bottom_near_left, bottom_near_right, bottom_far], "#905020");
-    welt_ctx.add_surface([top_near_left, top_near_right, top_far], "#905020");
-    welt_ctx.add_surface([bottom_near_left, bottom_near_right, top_near_right, top_near_left], "#905020");
-    welt_ctx.add_surface([bottom_near_left, bottom_far, top_far, top_near_left], "#905020");
-    welt_ctx.add_surface([bottom_near_right, bottom_far, top_far, top_near_right], "#905020");
+    welt_ctx.add_surface([bottom_near_left, bottom_near_right, bottom_far], "#905020", Surface.surface);
+    welt_ctx.add_surface([top_near_left, top_near_right, top_far], "#905020", Surface.surface);
+    welt_ctx.add_surface([bottom_near_left, bottom_near_right, top_near_right, top_near_left], "#905020", Surface.surface);
+    welt_ctx.add_surface([bottom_near_left, bottom_far, top_far, top_near_left], "#905020", Surface.surface);
+    welt_ctx.add_surface([bottom_near_right, bottom_far, top_far, top_near_right], "#905020", Surface.surface);
     
     let leaf_low_near_left = welt_ctx.add_vertex(x+100, y-100, z-400);
     let leaf_low_near_right = welt_ctx.add_vertex(x-200, y-100, z-400);
     let leaf_low_far = welt_ctx.add_vertex(x-150, y+200, z-400);
     let leaf_high = welt_ctx.add_vertex(x-50, y+50, z-800);
 
-    welt_ctx.add_surface([leaf_low_far, leaf_low_near_left, leaf_low_near_right], "#00A000");
-    welt_ctx.add_surface([leaf_high, leaf_low_near_left, leaf_low_near_right], "#00A000");
-    welt_ctx.add_surface([leaf_low_far, leaf_high, leaf_low_near_right], "#00A000");
-    welt_ctx.add_surface([leaf_low_far, leaf_low_near_left, leaf_high], "#00A000");
+    welt_ctx.add_surface([leaf_low_far, leaf_low_near_left, leaf_low_near_right], "#00A000", Surface.surface);
+    welt_ctx.add_surface([leaf_high, leaf_low_near_left, leaf_low_near_right], "#00A000", Surface.surface);
+    welt_ctx.add_surface([leaf_low_far, leaf_high, leaf_low_near_right], "#00A000", Surface.surface);
+    welt_ctx.add_surface([leaf_low_far, leaf_low_near_left, leaf_high], "#00A000", Surface.surface);
 };
 
 // add_tree(-200, 200, 0);
@@ -136,20 +136,20 @@ function add_gate(x, y, z) {
     let gate_far_back_top_left = welt_ctx.add_vertex(x-500, y-300, z-800);
     let gate_far_back_top_right = welt_ctx.add_vertex(x+500, y-300, z-800);
 
-    welt_ctx.add_surface([gate_left, gate_top_left, gate_back_top_left, gate_back_left], "#505050");
-    welt_ctx.add_surface([gate_right, gate_top_right, gate_back_top_right, gate_back_right], "#505050");
-    welt_ctx.add_surface([gate_top_left, gate_top_right, gate_back_top_right, gate_back_top_left], "#505050");
+    welt_ctx.add_surface([gate_left, gate_top_left, gate_back_top_left, gate_back_left], "#505050", Surface.surface);
+    welt_ctx.add_surface([gate_right, gate_top_right, gate_back_top_right, gate_back_right], "#505050", Surface.surface);
+    welt_ctx.add_surface([gate_top_left, gate_top_right, gate_back_top_right, gate_back_top_left], "#505050", Surface.surface);
     
-    welt_ctx.add_surface([gate_left, gate_far_left, gate_far_top_left, gate_top_left], "#707070");
-    welt_ctx.add_surface([gate_right, gate_far_right, gate_far_top_right, gate_top_right], "#707070");
-    welt_ctx.add_surface([gate_top_left, gate_far_top_left, gate_far_top_right, gate_top_right], "#707070");
-    welt_ctx.add_surface([gate_back_left, gate_far_back_left, gate_far_back_top_left, gate_back_top_left], "#707070");
-    welt_ctx.add_surface([gate_back_right, gate_far_back_right, gate_far_back_top_right, gate_back_top_right], "#707070");
-    welt_ctx.add_surface([gate_back_top_left, gate_far_back_top_left, gate_far_back_top_right, gate_back_top_right], "#707070");
+    welt_ctx.add_surface([gate_left, gate_far_left, gate_far_top_left, gate_top_left], "#707070", Surface.surface);
+    welt_ctx.add_surface([gate_right, gate_far_right, gate_far_top_right, gate_top_right], "#707070", Surface.surface);
+    welt_ctx.add_surface([gate_top_left, gate_far_top_left, gate_far_top_right, gate_top_right], "#707070", Surface.surface);
+    welt_ctx.add_surface([gate_back_left, gate_far_back_left, gate_far_back_top_left, gate_back_top_left], "#707070", Surface.surface);
+    welt_ctx.add_surface([gate_back_right, gate_far_back_right, gate_far_back_top_right, gate_back_top_right], "#707070", Surface.surface);
+    welt_ctx.add_surface([gate_back_top_left, gate_far_back_top_left, gate_far_back_top_right, gate_back_top_right], "#707070", Surface.surface);
     
-    welt_ctx.add_surface([gate_far_left, gate_far_top_left, gate_far_back_top_left, gate_far_back_left], "#707070");
-    welt_ctx.add_surface([gate_far_right, gate_far_top_right, gate_far_back_top_right, gate_far_back_right], "#707070");
-    welt_ctx.add_surface([gate_far_top_left, gate_far_top_right, gate_far_back_top_right, gate_far_back_top_left], "#707070");
+    welt_ctx.add_surface([gate_far_left, gate_far_top_left, gate_far_back_top_left, gate_far_back_left], "#707070", Surface.surface);
+    welt_ctx.add_surface([gate_far_right, gate_far_top_right, gate_far_back_top_right, gate_far_back_right], "#707070", Surface.surface);
+    welt_ctx.add_surface([gate_far_top_left, gate_far_top_right, gate_far_back_top_right, gate_far_back_top_left], "#707070", Surface.surface);
 };
 function add_wall(x, y, z) {
     let wall_left = welt_ctx.add_vertex(x-500, y+150, z);
@@ -161,11 +161,11 @@ function add_wall(x, y, z) {
     let wall_back_top_left = welt_ctx.add_vertex(x-500, y-150, z-600);
     let wall_back_top_right = welt_ctx.add_vertex(x+500, y-150, z-600);
     
-    welt_ctx.add_surface([wall_left, wall_top_left, wall_back_top_left, wall_back_left], "#707070");
-    welt_ctx.add_surface([wall_right, wall_top_right, wall_back_top_right, wall_back_right], "#707070");
-    welt_ctx.add_surface([wall_top_left, wall_top_right, wall_back_top_right, wall_back_top_left], "#707070");
-    welt_ctx.add_surface([wall_left, wall_top_left, wall_top_right, wall_right], "#707070");
-    welt_ctx.add_surface([wall_back_left, wall_back_top_left, wall_back_top_right, wall_back_right], "#707070");
+    welt_ctx.add_surface([wall_left, wall_top_left, wall_back_top_left, wall_back_left], "#707070", Surface.surface);
+    welt_ctx.add_surface([wall_right, wall_top_right, wall_back_top_right, wall_back_right], "#707070", Surface.surface);
+    welt_ctx.add_surface([wall_top_left, wall_top_right, wall_back_top_right, wall_back_top_left], "#707070", Surface.surface);
+    welt_ctx.add_surface([wall_left, wall_top_left, wall_top_right, wall_right], "#707070", Surface.surface);
+    welt_ctx.add_surface([wall_back_left, wall_back_top_left, wall_back_top_right, wall_back_right], "#707070", Surface.surface);
 };
 function add_fort_front(x, y, z) {
     add_gate(x, y, z);
