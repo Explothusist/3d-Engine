@@ -94,17 +94,10 @@ class Vertex {
         return new Vertex(this.x, this.y, this.z);
     }
 
-    add_perspective(/*los, */focus) {
+    add_perspective(focus, horizon) {
         let x = this.x;
         let y = this.y;
         let z = this.z;
-        // let multiplier = (vanish-this.y)/vanish;
-        // let los_mult = (vanish-los)/vanish;
-        // multiplier = Math.max(los_mult, Math.min(1, multiplier));
-        // // multiplier *= multiplier;
-        // this.x = x*multiplier;
-        // this.y = z*multiplier;
-        // this.z = y;
         
         y = Math.max(y, 0);
         let point = new Vertex_2d(x, z);
@@ -113,10 +106,24 @@ class Vertex {
         point.r = this.angular_diameter*focus;
         point = point.to_cartesean();
         this.x = point.x;
+        // this.y = point.y+(horizon*this.angular_diameter);
         this.y = point.y;
         this.z = y;
         this.actual_y = z;
         this.actual_z = this.r;
+
+        // this.x = x;
+        // this.y = z;
+        // this.z = y;
+        
+        // y = Math.max(y, 0);
+        // this.angular_diameter_x = 2*Math.atan(x/(2*y));
+        // this.x = this.angular_diameter_x*focus;
+        // this.angular_diameter_z = 2*Math.atan(z/(2*y));
+        // this.y = this.angular_diameter_z*(focus+horizon);
+        // this.z = y;
+        // this.actual_y = z;
+        // this.actual_z = this.r;
     }
 
     debug_text(txt, x, y, ctx) {
@@ -772,16 +779,51 @@ class Surface {
 };
 
 class Camera {
+    char_point;
     point;
     angle;
+    perspective = "first";
+
+    third_seperation = 1000;
 
     constructor(x, y, z, theta, phi) {
         this.point = new Vertex(x, y, z);
         this.angle = new Phi_Shift_Spherical_Vertex(0, theta, phi);
         this.physics = new Physics_Element();
     }
+    setup_third_person() {
+        this.perspective = "third";
+        this.char_point = this.point.copy();
+        this.calulate_third_person_camera();
+    }
+    calulate_third_person_camera() {
+        // this.point = this.char_point.to_spherical();
+        // let mod_angle = this.angle.copy();
+        // mod_angle.r = 300;
+        // mod_angle.phi = 0;
+        // this.point.translate(mod_angle);
+        // this.point = this.point.to_cartesean();
+
+        // this.point = this.char_point.copy();
+        // let mod_angle = new Polar_Vertex(this.third_seperation, this.angle.theta-(Math.PI/2));
+        // mod_angle = mod_angle.to_cartesean();
+        // let mod_3d = new Vertex(mod_angle.x, mod_angle.y, 0);
+        // this.point.translate(mod_3d);
+        
+        this.point = this.char_point.copy();
+        let mod_angle = this.angle.copy();
+        mod_angle.r = this.third_seperation;
+        mod_angle.theta -= Math.PI/2;
+        mod_angle.phi *= -1;
+        mod_angle.phi += Math.PI/2;
+        mod_angle = mod_angle.to_cartesean();
+        this.point.translate(mod_angle);
+    }
     get_bounding_points() {
         let origin = new Vertex(this.point.x-100, this.point.y-100, this.point.z);
+        if (this.perspective === "third") {
+            origin = new Vertex(this.char_point.x-100, this.char_point.y-100, this.char_point.z);
+        }
         let extent = new Vertex(200, 200, 300);
         let bounding_points = [];
         bounding_points.push(new Vertex(origin.x, origin.y, origin.z));
@@ -796,56 +838,37 @@ class Camera {
     }
 
     moveFullRelative(vector) {
-        // Uses Phi
-
-        // let trans_point = this.point.to_spherical();
-        // let invert_angle = this.angle.copy();
-        // invert_angle.invert();
-        // trans_point.translate(invert_angle);
-        // trans_point = trans_point.to_cartesean();
-        // trans_point.translate(vector);
-        // trans_point = trans_point.to_spherical();
-        // trans_point.translate(this.angle);
-        // trans_point = trans_point.to_cartesean();
-        // this.point = trans_point;
-
         let angled_vector = vector.copy();
         angled_vector = angled_vector.to_spherical();
         angled_vector.translate(this.angle);
         angled_vector = angled_vector.to_cartesean();
         this.point.translate(angled_vector);
-        // this.physics.move(angled_vector);
+        if (this.perspective === "third") {
+            this.char_point.translate(angled_vector);
+        }
     }
     moveRelative(vector) {
-        // Ignores Phi
-
-        // let trans_point = this.point.to_spherical();
-        // let invert_angle = new Spherical_Vertex(0, this.angle.theta, 0);
-        // console.log(this.angle, invert_angle);
-        // invert_angle.invert();
-        // trans_point.translate(invert_angle);
-        // trans_point = trans_point.to_cartesean();
-        // trans_point.translate(vector);
-        // trans_point = trans_point.to_spherical();
-        // trans_point.translate(this.angle);
-        // trans_point = trans_point.to_cartesean();
-        // console.log(this.point, trans_point);
-        // this.point = trans_point;
-        
         let angled_vector = vector.copy();
         angled_vector = angled_vector.to_spherical();
         angled_vector.translate(new Spherical_Vertex(0, this.angle.theta, 0));
         angled_vector = angled_vector.to_cartesean();
         this.point.translate(angled_vector);
-        // this.physics.move(angled_vector);
+        if (this.perspective === "third") {
+            this.char_point.translate(angled_vector);
+        }
     }
     moveAbsolute(vector) {
         this.point.translate(vector);
-        // this.physics.move(vector);
+        if (this.perspective === "third") {
+            this.char_point.translate(vector);
+        }
     }
     rotate(vector) {
         this.angle.translate(vector);
         this.angle.within_bounds();
+        if (this.perspective === "third") {
+            this.calulate_third_person_camera();
+        }
     }
 };
 
@@ -909,6 +932,11 @@ class WeltContext {
     // los = 6000;
     distinguishable_size = 0.0003; // 0.0003 rad = 1 arcminute = how small an object humans can make out
     focus = 500; // Distance at which objects are x pixels large, x being size in code
+    horizon = 0;
+
+    perspective = "first";
+    person_vertices = [];
+    person_surfaces = [];
 
     floors = [1000000, 0, -1000000];
 
@@ -924,6 +952,12 @@ class WeltContext {
     set_floors(floors) {
         this.floors = floors;
     }
+    setup_third_person(person_vertices, person_surfaces) {
+        this.perspective = "third";
+        this.person_vertices = person_vertices;
+        this.person_surfaces = person_surfaces;
+        this.camera.setup_third_person();
+    }
 
     add_vertex(x, y, z) {
         // Makes a new vertex and returns the index of that vertex
@@ -935,6 +969,7 @@ class WeltContext {
     }
 
     render(x, y, width, height, ctx) {
+        // console.log(this.horizon);
         ctx.fillStyle = "#C0C0C0";
         ctx.fillRect(x, y, width, height);
         
@@ -961,7 +996,7 @@ class WeltContext {
             // I was right! Now maybe it is correct
             vert = vert.to_cartesean();
             // vert.debug_text("cartesean: ", 50, 180+(i*150), ctx);
-            vert.add_perspective(/*this.distinguishable_size, */this.focus);
+            vert.add_perspective(this.focus, this.horizon);
             // vert.debug_text("perspective: ", 50, 200+(i*150), ctx);
             vertex_positions.push(vert);
         }
@@ -993,8 +1028,18 @@ class WeltContext {
                 average_dist += vertex_positions[vert_index].actual_z;
                 average_height += this.vertices[vert_index].z;
                 // min_dist = Math.min(vertex_positions[vert_index].z, min_dist);
-                if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].angular_diameter > this.distinguishable_size) {
-                    one_on_screen = true;
+                if (this.perspective === "first") {
+                    if (vertex_positions[vert_index].z > 0/* && vertex_positions[vert_index].angular_diameter > this.distinguishable_size*/) {
+                        one_on_screen = true;
+                    }
+                }else if (this.perspective === "third") {
+                    let vanishing = 0;
+                    if (surface.type !== Surface.floor) {
+                        vanishing = this.camera.third_seperation;
+                    }
+                    if (vertex_positions[vert_index].z > vanishing/* && vertex_positions[vert_index].angular_diameter > this.distinguishable_size*/) {
+                        one_on_screen = true;
+                    }
                 }
                 if (vertex_positions[vert_index].x > -(width/2) && vertex_positions[vert_index].x < (width/2)
                     && vertex_positions[vert_index].y > -(height/2) && vertex_positions[vert_index].y < (height/2)) {
@@ -1014,7 +1059,7 @@ class WeltContext {
                     }
                 }
             }
-            if ((offscreen_negx+offscreen_posx) === 2 || (offscreen_negy+offscreen_posy) === 2) {
+            if ((offscreen_negx+offscreen_posx+offscreen_negy+offscreen_posy) >= 2) {
                 one_on_screen_x = true;
             }
             average_dist /= surface.vertices.length;
@@ -1083,79 +1128,100 @@ class WeltContext {
         for (let surface of split_floors[char_floor].surfaces) {
             draw_surface(this.surfaces[surface.index]);
         }
-        // for (let surf_index of surfaces_sorted) {
-        //     let surface = this.surfaces[surf_index.index];
-        // }
 
-        // surfaces_sorted = [];
-        // for (let i in this.surfaces) {
-        //     let surface = this.surfaces[i];
-        //     if (surface.type !== Surface.floor) {
-        //         let average_dist = 0;
-        //         let average_height = 0;
-        //         // let min_dist = this.los;
-        //         let one_on_screen = false;
-        //         let one_on_screen_x = false;
-        //         let offscreen_posx = false;
-        //         let offscreen_negx = false;
-        //         let offscreen_posy = false;
-        //         let offscreen_negy = false;
-        //         for (let vert_index of surface.vertices) {
-        //             // average_dist += vertex_positions[vert_index].z;
-        //             average_dist += vertex_positions[vert_index].actual_z;
-        //             average_height += vertex_positions[vert_index].actual_y;
-        //             // min_dist = Math.min(vertex_positions[vert_index].z, min_dist);
-        //             if (vertex_positions[vert_index].z > 0 && vertex_positions[vert_index].angular_diameter > this.distinguishable_size) {
-        //                 one_on_screen = true;
-        //             }
-        //             if (vertex_positions[vert_index].x > -(width/2) && vertex_positions[vert_index].x < (width/2)
-        //                 && vertex_positions[vert_index].y > -(height/2) && vertex_positions[vert_index].y < (height/2)) {
-        //                 one_on_screen_x = true;
-        //             }else {
-        //                 if (vertex_positions[vert_index].x < -(width/2)) {
-        //                     offscreen_negx = true;
-        //                 }
-        //                 if (vertex_positions[vert_index].x > (width/2)) {
-        //                     offscreen_posx = true;
-        //                 }
-        //                 if (vertex_positions[vert_index].y < -(height/2)) {
-        //                     offscreen_negy = true;
-        //                 }
-        //                 if (vertex_positions[vert_index].y > (height/2)) {
-        //                     offscreen_posy = true;
-        //                 }
-        //             }
-        //         }
-        //         if ((offscreen_negx+offscreen_posx) === 2 || (offscreen_negy+offscreen_posy) === 2) {
-        //             one_on_screen_x = true;
-        //         }
-        //         average_dist /= surface.vertices.length;
-        //         average_height /= surface.vertices.length;
-        //         if (one_on_screen && one_on_screen_x) {
-        //             surfaces_sorted.push({floor: false, index: i, dist: average_dist, height: average_height});
-        //             // surfaces_sorted.push({index: i, dist: min_dist});
-        //         }
-        //     }
-        // }
+        if (this.perspective === "third") {
+            let vertex_positions = [];
+            for (let i in this.person_vertices) {
+                let vert = this.person_vertices[i].copy();
+                vert.translate(this.camera.char_point);
+                // vert.debug_text("start: ", 50, 100+(i*150), ctx);
+                // Translates so camera point is origin
+                vert.translate(cam_point);
+                // vert.debug_text("translate: ", 50, 120+(i*150), ctx);
+                vert = vert.to_spherical();
+                // vert.debug_text("spherical: ", 50, 140+(i*150), ctx);
+                // Rotates so camera angle is origin
+                vert.translate(cam_angle);
+                // vert.debug_text("rotate: ", 50, 160+(i*150), ctx);
+                // If any math is wrong, it is probably this math
+                // I was right! Now maybe it is correct
+                vert = vert.to_cartesean();
+                // vert.debug_text("cartesean: ", 50, 180+(i*150), ctx);
+                vert.add_perspective(this.focus, this.horizon);
+                // vert.debug_text("perspective: ", 50, 200+(i*150), ctx);
+                vertex_positions.push(vert);
+            }
 
-        // surfaces_sorted.sort((a,b) => b.dist-a.dist);
+            let surfaces_sorted = [];
+            for (let i in this.person_surfaces) {
+                let surface = this.person_surfaces[i];
+                let average_dist = 0;
+                let average_height = 0;
+                // let min_dist = this.los;
+                let one_on_screen = false;
+                let one_on_screen_x = false;
+                let offscreen_posx = false;
+                let offscreen_negx = false;
+                let offscreen_posy = false;
+                let offscreen_negy = false;
+                for (let vert_index of surface.vertices) {
+                    // average_dist += vertex_positions[vert_index].z;
+                    average_dist += vertex_positions[vert_index].actual_z;
+                    average_height += this.vertices[vert_index].z;
+                    // min_dist = Math.min(vertex_positions[vert_index].z, min_dist);
+                    if (vertex_positions[vert_index].z > 0/* && vertex_positions[vert_index].angular_diameter > this.distinguishable_size*/) {
+                        one_on_screen = true;
+                    }
+                    if (vertex_positions[vert_index].x > -(width/2) && vertex_positions[vert_index].x < (width/2)
+                        && vertex_positions[vert_index].y > -(height/2) && vertex_positions[vert_index].y < (height/2)) {
+                        one_on_screen_x = true;
+                    }else {
+                        if (vertex_positions[vert_index].x < -(width/2)) {
+                            offscreen_negx = true;
+                        }
+                        if (vertex_positions[vert_index].x > (width/2)) {
+                            offscreen_posx = true;
+                        }
+                        if (vertex_positions[vert_index].y < -(height/2)) {
+                            offscreen_negy = true;
+                        }
+                        if (vertex_positions[vert_index].y > (height/2)) {
+                            offscreen_posy = true;
+                        }
+                    }
+                }
+                if ((offscreen_negx+offscreen_posx) === 2 || (offscreen_negy+offscreen_posy) === 2) {
+                    one_on_screen_x = true;
+                }
+                average_dist /= surface.vertices.length;
+                average_height /= surface.vertices.length;
+                if (one_on_screen && one_on_screen_x) {
+                    surfaces_sorted.push({index: i, dist: average_dist, height: average_height});
+                }
+            }
+            
+            surfaces_sorted.sort((a,b) => b.dist-a.dist);
+            
+            function draw_surface(surface) {
+                ctx.fillStyle = surface.color;
+                ctx.strokeStyle = "#000000";
+                ctx.beginPath();
+                ctx.moveTo(center_x+vertex_positions[surface.vertices[0]].x, center_y+vertex_positions[surface.vertices[0]].y);
+                for (let i = 1; i < surface.vertices.length; i++) {
+                    ctx.lineTo(center_x+vertex_positions[surface.vertices[i]].x, center_y+vertex_positions[surface.vertices[i]].y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+                ctx.fill();
+            };
 
-        // for (let surf_index of surfaces_sorted) {
-        //     let surface = this.surfaces[surf_index.index];
-        //     ctx.fillStyle = surface.color;
-        //     ctx.strokeStyle = "#000000";
-        //     ctx.beginPath();
-        //     ctx.moveTo(center_x+vertex_positions[surface.vertices[0]].x, center_y+vertex_positions[surface.vertices[0]].y);
-        //     for (let i = 1; i < surface.vertices.length; i++) {
-        //         ctx.lineTo(center_x+vertex_positions[surface.vertices[i]].x, center_y+vertex_positions[surface.vertices[i]].y);
-        //     }
-        //     ctx.closePath();
-        //     ctx.stroke();
-        //     ctx.fill();
-        // }
+            for (let surface of surfaces_sorted) {
+                draw_surface(this.person_surfaces[surface.index]);
+            }
+        }
     }
     physics() {
-        this.camera.point.translate(new Vertex(0, 0, -this.camera.physics.fall()));
+        this.camera.moveAbsolute(new Vertex(0, 0, -this.camera.physics.fall()));
         this.camera_to_floor_collision();
     }
     camera_to_floor_collision() {
@@ -1173,7 +1239,7 @@ class WeltContext {
         if (in_a_floor) {
             this.camera.physics.land();
             while (collide_cube_to_floor_rect(this.camera.get_bounding_points(), this.indices_to_vertices(collided_surface.vertices))) {
-                this.camera.point.translate(new Vertex(0, 0, -1));
+                this.camera.moveAbsolute(new Vertex(0, 0, -1));
             }
         }
     }
@@ -1199,7 +1265,7 @@ class WeltContext {
 
     camera_to_wall_collision(move_type, vector) {
         let reverse_vector = vector.copy();
-        // reverse_vector.scale(new Vertex(0.1, 0.1, 0.1));
+        reverse_vector.scale(new Vertex(0.1, 0.1, 0.1));
         reverse_vector.invert();
         // console.log(vector, reverse_vector);
         for (let surface of this.surfaces) {
@@ -1208,10 +1274,13 @@ class WeltContext {
                     switch (move_type) {
                         case 0:
                             this.camera.moveFullRelative(reverse_vector);
+                            break;
                         case 1:
                             this.camera.moveRelative(reverse_vector);
+                            break;
                         case 2:
                             this.camera.moveAbsolute(reverse_vector);
+                            break;
                     }
                 }
             }
@@ -1384,5 +1453,134 @@ function AddTiledRect(welt_ctx, point, width, length, x_tiles, y_tiles, options)
                 welt_ctx.add_surface([vertices[i][j], vertices[i+1][j], vertices[i+1][j+1], vertices[i][j+1]], color, Surface.floor);
             }
         }
+    }
+};
+
+function AddGable(welt_ctx, point, width, length, height, sides, options) {
+    // point is bottom, back, left
+    // sides is array of booleans in the form:
+    // [top, bottom, side1 (back side (x, z)), side2 (clockwise from side1), ...]
+    // options are from_spherical (bool), color (color), all_sides (bool), flip_gable (bool)
+    if (options.from_spherical) {
+        point = point.to_cartesean();
+    }
+    let color = options.color || "#000000";
+
+    if (options.all_sides) {
+        sides = [true, true, true, true, true];
+    }
+
+    if (!options.flip_gable) {
+        let bottom_back_left = welt_ctx.add_vertex(point.x, point.y, point.z);
+        let bottom_back_right = welt_ctx.add_vertex(point.x+width, point.y, point.z);
+        let bottom_front_left = welt_ctx.add_vertex(point.x, point.y+length, point.z);
+        let bottom_front_right = welt_ctx.add_vertex(point.x+width, point.y+length, point.z);
+        let top_back = welt_ctx.add_vertex(point.x+(width/2), point.y, point.z+height);
+        let top_front = welt_ctx.add_vertex(point.x+(width/2), point.y+length, point.z+height);
+
+        if (sides[0]) {
+            welt_ctx.add_surface([top_back, top_front, bottom_front_left, bottom_back_left], color, Surface.platform);
+        }
+        if (sides[1]) {
+            welt_ctx.add_surface([top_back, top_front, bottom_front_right, bottom_back_right], color, Surface.platform);
+        }
+        if (sides[2]) {
+            welt_ctx.add_surface([bottom_back_left, bottom_back_right, bottom_front_right, bottom_front_left], color, Surface.platform);
+        }
+        if (sides[3]) {
+            welt_ctx.add_surface([bottom_back_left, bottom_back_right, top_back], color, Surface.surface);
+        }
+        if (sides[4]) {
+            welt_ctx.add_surface([bottom_front_right, bottom_front_left, top_front], color, Surface.surface);
+        }
+    }else {
+        let bottom_back_left = welt_ctx.add_vertex(point.x, point.y, point.z);
+        let bottom_back_right = welt_ctx.add_vertex(point.x+width, point.y, point.z);
+        let bottom_front_left = welt_ctx.add_vertex(point.x, point.y+length, point.z);
+        let bottom_front_right = welt_ctx.add_vertex(point.x+width, point.y+length, point.z);
+        let top_left = welt_ctx.add_vertex(point.x, point.y+(length/2), point.z+height);
+        let top_right = welt_ctx.add_vertex(point.x+width, point.y+(length/2), point.z+height);
+
+        if (sides[0]) {
+            welt_ctx.add_surface([top_left, top_right, bottom_front_right, bottom_front_left], color, Surface.platform);
+        }
+        if (sides[1]) {
+            welt_ctx.add_surface([top_left, top_right, bottom_back_right, bottom_back_left], color, Surface.platform);
+        }
+        if (sides[2]) {
+            welt_ctx.add_surface([bottom_back_left, bottom_back_right, bottom_front_right, bottom_front_left], color, Surface.platform);
+        }
+        if (sides[3]) {
+            welt_ctx.add_surface([bottom_back_left, bottom_front_left, top_left], color, Surface.wall);
+        }
+        if (sides[4]) {
+            welt_ctx.add_surface([bottom_front_right, bottom_back_right, top_right], color, Surface.wall);
+        }
+    }
+};
+
+function AddLadder(welt_ctx, point, height, options) {
+    let width = 400;
+    let length = 50;
+    let spacing = 200;
+    let color = options.color || "#000000";
+
+    AddCube(welt_ctx, new Vertex(point.x, point.y, point.z), 50, 50, -height, [], { all_sides: true, color: color });
+    AddCube(welt_ctx, new Vertex(point.x+width-50, point.y, point.z), 50, 50, -height, [], { all_sides: true, color: color });
+    for (let z = 0; z > -height; z -= spacing) {
+        AddCube(welt_ctx, new Vertex(point.x+50, point.y, point.z+z), width-100, length, 50, [], { all_sides: true, color: color });
+    }
+};
+
+function AddRamp(welt_ctx, point, width, length, height, options) {
+    let color = options.color || "#000000";
+    if (options.face_right) {
+        let far_top_right = welt_ctx.add_vertex(point.x, point.y+length, point.z-height);
+        let far_top_left = welt_ctx.add_vertex(point.x+width, point.y+length, point.z-height);
+        let far_bottom_right = welt_ctx.add_vertex(point.x, point.y+length, point.z);
+        let far_bottom_left = welt_ctx.add_vertex(point.x+width, point.y+length, point.z);
+        let back_right = welt_ctx.add_vertex(point.x, point.y, point.z);
+        let back_left = welt_ctx.add_vertex(point.x+width, point.y, point.z);
+        welt_ctx.add_surface([far_top_right, far_top_left, back_left, back_right], color, Surface.platform);
+        welt_ctx.add_surface([back_right, far_bottom_right, far_top_right], color, Surface.surface);
+        welt_ctx.add_surface([far_top_left, far_bottom_left, back_left], color, Surface.surface);
+        welt_ctx.add_surface([far_top_right, far_top_left, far_bottom_left, far_bottom_right], color, Surface.surface);
+        welt_ctx.add_surface([far_bottom_right, far_bottom_left, back_left, back_right], color, Surface.platform);
+    }else if (options.face_left) {
+        let far_right = welt_ctx.add_vertex(point.x, point.y+length, point.z);
+        let far_left = welt_ctx.add_vertex(point.x+width, point.y+length, point.z);
+        let back_bottom_right = welt_ctx.add_vertex(point.x, point.y, point.z);
+        let back_bottom_left = welt_ctx.add_vertex(point.x+width, point.y, point.z);
+        let back_top_right = welt_ctx.add_vertex(point.x, point.y, point.z-height);
+        let back_top_left = welt_ctx.add_vertex(point.x+width, point.y, point.z-height);
+        welt_ctx.add_surface([back_top_right, back_top_left, far_left, far_right], color, Surface.platform);
+        welt_ctx.add_surface([far_right, back_bottom_right, back_top_right], color, Surface.surface);
+        welt_ctx.add_surface([back_top_left, back_bottom_left, far_left], color, Surface.surface);
+        welt_ctx.add_surface([back_top_right, back_top_left, back_bottom_left, back_bottom_right], color, Surface.surface);
+        welt_ctx.add_surface([back_bottom_right, back_bottom_left, far_left, far_right], color, Surface.platform);
+    }else if (options.face_front) {
+        let far_top_right = welt_ctx.add_vertex(point.x, point.y+length, point.z-height);
+        let far_bottom_right = welt_ctx.add_vertex(point.x, point.y+length, point.z);
+        let far_left = welt_ctx.add_vertex(point.x+width, point.y+length, point.z);
+        let back_top_right = welt_ctx.add_vertex(point.x, point.y, point.z-height);
+        let back_bottom_right = welt_ctx.add_vertex(point.x, point.y, point.z);
+        let back_left = welt_ctx.add_vertex(point.x+width, point.y, point.z);
+        welt_ctx.add_surface([far_top_right, back_top_right, back_left, far_left], color, Surface.platform);
+        welt_ctx.add_surface([far_top_right, far_bottom_right, far_left], color, Surface.surface);
+        welt_ctx.add_surface([back_top_right, back_bottom_right, back_left], color, Surface.surface);
+        welt_ctx.add_surface([far_top_right, back_top_right, back_bottom_right, far_bottom_right], color, Surface.surface);
+        welt_ctx.add_surface([back_bottom_right, far_bottom_right, far_left, back_left], color, Surface.platform);
+    }else if (options.face_back) {
+        let far_right = welt_ctx.add_vertex(point.x, point.y+length, point.z);
+        let far_top_left = welt_ctx.add_vertex(point.x+width, point.y+length, point.z-height);
+        let far_bottom_left = welt_ctx.add_vertex(point.x+width, point.y+length, point.z);
+        let back_right = welt_ctx.add_vertex(point.x, point.y, point.z);
+        let back_top_left = welt_ctx.add_vertex(point.x+width, point.y, point.z-height);
+        let back_bottom_left = welt_ctx.add_vertex(point.x+width, point.y, point.z);
+        welt_ctx.add_surface([far_top_left, back_top_left, back_right, far_right], color, Surface.platform);
+        welt_ctx.add_surface([far_top_left, far_bottom_left, far_right], color, Surface.surface);
+        welt_ctx.add_surface([back_top_left, back_bottom_left, back_right], color, Surface.surface);
+        welt_ctx.add_surface([far_top_left, back_top_left, back_bottom_left, far_bottom_left], color, Surface.surface);
+        welt_ctx.add_surface([back_bottom_left, far_bottom_left, far_right, back_right], color, Surface.platform);
     }
 };

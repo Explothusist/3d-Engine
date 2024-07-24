@@ -45,6 +45,9 @@ function set_key_state(key, state) {
         case "Control":
             key_states.ctrl = state;
             break;
+        case "Shift":
+            key_states.shift = state;
+            break;
     }
 };
 function get_key_state(key) {
@@ -77,6 +80,8 @@ function get_key_state(key) {
             return key_states.pgdown;
         case "Control":
             return key_states.ctrl;
+        case "Shift":
+            return key_states.shift;
     }
 };
 document.addEventListener("keydown", function(event) {
