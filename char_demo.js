@@ -257,6 +257,22 @@ function handle_camera() {
     if (move_vector.x !== 0 || move_vector.y !== 0) {
         welt_ctx.moveCameraRelative(move_vector);
     }
+
+    if (isGamepadConnected()) {
+        if (get_button_state("A")) {
+            if (welt_ctx.camera.physics.canJump()) {
+                welt_ctx.camera.physics.jump();
+            }
+        }
+        let rotate_vector = new Spherical_Vertex(0, rotate_speed*-get_axis_state("RightX", 0.1), 0);
+        if (rotate_vector.theta !== 0) {
+            welt_ctx.rotateCamera(rotate_vector);
+        }
+        let move_vector = new Vertex(move_speed*get_axis_state("LeftX", 0.1), move_speed*-get_axis_state("LeftY", 0.1), 0);
+        if (move_vector.x !== 0 || move_vector.y !== 0) {
+            welt_ctx.moveCameraRelative(move_vector);
+        }
+    }
 };
 
 function render_loop() {

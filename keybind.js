@@ -1,4 +1,5 @@
 
+// Key Handling
 let key_states = {};
 function set_key_state(key, state) {
     // console.log(key);
@@ -90,3 +91,81 @@ document.addEventListener("keydown", function(event) {
 document.addEventListener("keyup", function(event) {
     set_key_state(event.key, false);
 });
+
+// Controller Hendling
+let gamepads = [];
+function gamepadHandler(event, connected) {
+  const new_gamepad = event.gamepad;
+  // Note:
+  // gamepad === navigator.getGamepads()[gamepad.index]
+
+
+  if (connected) {
+    console.log("Joystick Connected!");
+    gamepads.push(new_gamepad);
+    console.log(gamepads);
+  } else {
+    console.log("Joystick Disconnected");
+    for (let i in gamepads) {
+        let gamepad = gamepads[i];
+        if (gamepad.index === new_gamepad.index) {
+            gamepads.splice(i, 1);
+        }
+    }
+  }
+}
+
+window.addEventListener(
+  "gamepadconnected",
+  (e) => {
+    gamepadHandler(e, true);
+  },
+  false,
+);
+window.addEventListener(
+  "gamepaddisconnected",
+  (e) => {
+    gamepadHandler(e, false);
+  },
+  false,
+);
+
+// l/rb = left/right bumper, l/rt = left/right trigger, l/rj = click left/right joystick
+let standard_button_bindings = ["B", "A", "Y", "X", "LBumper", "RBumper", "LTrigger", "RTrigger", "Select", "Start", "LJoystick", "RJoystick", "Up", "Down", "Left", "Right", "Special"];
+let standard_axes_bindings = ["LeftX", "LeftY", "RightX", "RightY"];
+function get_button_state(button_name) {
+    let button = standard_button_bindings.indexOf(button_name);
+    if (button === -1) {
+        alert("Button "+button_name+" not recognized");
+        return;
+    }
+    let any_true = false;
+    for (let i in gamepads) {
+        let gamepad = navigator.getGamepads()[gamepads[i].index];
+        if (gamepad.buttons[button].pressed) {
+            any_true = true;
+            break;
+        }
+    }
+    return any_true;
+};
+function get_axis_state(axis_name, deadband) {
+    let axis = standard_axes_bindings.indexOf(axis_name);
+    if (axis === -1) {
+        alert("Axis "+axis_name+" not recognized");
+    }
+    let most_extreme = 0;
+    for (let i in gamepads) {
+        let gamepad = navigator.getGamepads()[gamepads[i].index];
+        if (Math.abs(gamepad.axes[axis]) > Math.max(most_extreme, deadband)) {
+            most_extreme = gamepad.axes[axis];
+        }
+    }
+    return most_extreme;
+};
+function isGamepadConnected() {
+    if (gamepads.length >= 1) {
+        return true;
+    }
+    return false;
+};
