@@ -24,9 +24,9 @@ class Spherical_Vertex {
         this.phi *= -1;
     }
     to_cartesean() {
-        let z = this.r*Math.cos(this.phi);
         let x = this.r*Math.cos(this.theta)*Math.sin(this.phi);
         let y = this.r*Math.sin(this.theta)*Math.sin(this.phi);
+        let z = this.r*Math.cos(this.phi);
         let ret = new Vertex(x, y, z);
         ret.r = this.r;
         return ret;
@@ -55,7 +55,7 @@ class Phi_Shift_Spherical_Vertex extends Spherical_Vertex {
     within_bounds() {
         this.theta = (this.theta+(Math.PI*2)) % (Math.PI*2);
         // If it actually reaches pi/2, odd math occurs
-        this.phi = Math.min((Math.PI/2)*0.99, Math.max(this.phi, (-Math.PI/2)*0.99));
+        this.phi = Math.min((Math.PI/2), Math.max(this.phi, (-Math.PI/2)));
     }
 };
 
@@ -94,20 +94,28 @@ class Vertex {
         return new Vertex(this.x, this.y, this.z);
     }
 
-    add_perspective(focus, horizon) {
+    add_perspective(focus, phi) {
         let x = this.x;
         let y = this.y;
         let z = this.z;
         
         y = Math.max(y, 0);
-        let point = new Vertex_2d(x, z);
+
+        let horizon_vert = new Polar_Vertex(y, phi);
+        horizon_vert = horizon_vert.to_cartesean();
+        let horizon_y = horizon_vert.y;
+
+        let horizon_ang_dia = 2*Math.atan(horizon_y/(2*y));
+        horizon_ang_dia *= focus;
+
+        let point = new Vertex_2d(x, z/*-horizon_y*/);
         point = point.to_polar();
         this.angular_diameter = 2*Math.atan(point.r/(2*y));
         point.r = this.angular_diameter*focus;
         point = point.to_cartesean();
         this.x = point.x;
         // this.y = point.y+(horizon*this.angular_diameter);
-        this.y = point.y;
+        this.y = point.y+horizon_ang_dia;
         this.z = y;
         this.actual_y = z;
         this.actual_z = this.r;
@@ -968,24 +976,23 @@ class WeltContext {
         this.surfaces.push(new Surface(vertices, color, type));
     }
 
-    render(x, y, width, height, ctx) {
-        // console.log(this.horizon);
-        ctx.fillStyle = "#C0C0C0";
-        ctx.fillRect(x, y, width, height);
-        
-        let center_x = Math.floor(x+(width/2));
-        let center_y = Math.floor(y+(height/2));
-
+    calculate_vertices(vertices) {
+        let vertex_positions = [];
         let cam_point = this.camera.point.copy();
         cam_point.invert();
+        let cam_angle_point = this.camera.angle.to_cartesean();
+        cam_angle_point.invert();
         let cam_angle = this.camera.angle.copy();
         cam_angle.invert();
-        let vertex_positions = [];
-        for (let i in this.vertices) {
-            let vert = this.vertices[i].copy();
+        // let cam_phi_angle = cam_angle.copy();
+        cam_angle.phi = 0;
+        cam_angle.r = 0;
+        for (let i in vertices) {
+            let vert = vertices[i].copy();
             // vert.debug_text("start: ", 50, 100+(i*150), ctx);
             // Translates so camera point is origin
             vert.translate(cam_point);
+            vert.translate(cam_angle_point);
             // vert.debug_text("translate: ", 50, 120+(i*150), ctx);
             vert = vert.to_spherical();
             // vert.debug_text("spherical: ", 50, 140+(i*150), ctx);
@@ -996,10 +1003,27 @@ class WeltContext {
             // I was right! Now maybe it is correct
             vert = vert.to_cartesean();
             // vert.debug_text("cartesean: ", 50, 180+(i*150), ctx);
-            vert.add_perspective(this.focus, this.horizon);
+            vert.add_perspective(this.focus, this.camera.angle.phi);
             // vert.debug_text("perspective: ", 50, 200+(i*150), ctx);
+            // vert = new Vertex(vert.x, this.focus, vert.z);
+            // vert = vert.to_spherical();
+            // vert.translate(cam_phi_angle);
+            // vert = vert.to_cartesean();
+            // vert.y = vert.z;
             vertex_positions.push(vert);
         }
+        return vertex_positions;
+    }
+
+    render(x, y, width, height, ctx) {
+        // console.log(this.horizon);
+        ctx.fillStyle = "#C0C0C0";
+        ctx.fillRect(x, y, width, height);
+        
+        let center_x = Math.floor(x+(width/2));
+        let center_y = Math.floor(y+(height/2));
+
+        let vertex_positions = this.calculate_vertices(this.vertices);
 
         // console.log(vertex_positions);
 
@@ -1130,27 +1154,13 @@ class WeltContext {
         }
 
         if (this.perspective === "third") {
-            let vertex_positions = [];
+            let person_vertices = [];
             for (let i in this.person_vertices) {
                 let vert = this.person_vertices[i].copy();
                 vert.translate(this.camera.char_point);
-                // vert.debug_text("start: ", 50, 100+(i*150), ctx);
-                // Translates so camera point is origin
-                vert.translate(cam_point);
-                // vert.debug_text("translate: ", 50, 120+(i*150), ctx);
-                vert = vert.to_spherical();
-                // vert.debug_text("spherical: ", 50, 140+(i*150), ctx);
-                // Rotates so camera angle is origin
-                vert.translate(cam_angle);
-                // vert.debug_text("rotate: ", 50, 160+(i*150), ctx);
-                // If any math is wrong, it is probably this math
-                // I was right! Now maybe it is correct
-                vert = vert.to_cartesean();
-                // vert.debug_text("cartesean: ", 50, 180+(i*150), ctx);
-                vert.add_perspective(this.focus, this.horizon);
-                // vert.debug_text("perspective: ", 50, 200+(i*150), ctx);
-                vertex_positions.push(vert);
+                person_vertices.push(vert);
             }
+            let vertex_positions = this.calculate_vertices(person_vertices);
 
             let surfaces_sorted = [];
             for (let i in this.person_surfaces) {
